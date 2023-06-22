@@ -71,7 +71,7 @@ class Coords(Remsenso):
             plt.show()
 
         # If you notice that it looks wrong you might need to remove some data or points
-    def plot_on_ortho(self, ortho, band=1):
+    def plot_on_image(self, ortho, band=1):
         """
         Plot the coords on an orthosomaic
         :param ortho:

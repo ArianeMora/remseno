@@ -53,7 +53,7 @@ class Image(Remsenso):
         Get all the bands in an image
         :return:
         """
-        return self.ortho.count
+        return self.image.count
 
     def get_sr(self, nir_band: int, red_band: int):
         """
@@ -67,8 +67,8 @@ class Image(Remsenso):
         :return: sr
         """
         # Get the bands from the image
-        nir = self.ortho.read(nir_band)
-        red_band = self.ortho.read(red_band)
+        nir = self.image.read(nir_band)
+        red_band = self.image.read(red_band)
         sr = nir/red_band
         return sr
 
@@ -79,7 +79,7 @@ class Image(Remsenso):
         :param band_index:
         :return:
         """
-        return self.ortho.read(band_index)
+        return self.image.read(band_index)
 
     def rename_ortho_photos(self, flight_dir: str, output_dir: str):
         """
@@ -168,7 +168,32 @@ class Image(Remsenso):
             plt.show()
         return ax
 
-    def plot_multi_bands(self, ax=None, show_plot=False):
+    def plot_multi_bands(self, bands: list, title='', ax=None, show_plot=False):
+        """
+        Plots multiple
+        :param bands: a list of bands to plot
+        :param ax:
+        :param show_plot:
+        :return:
+        """
+        if ax is None:
+            fig, ax = plt.subplots()
+        # Convert to numpy arrays
+        img_bands = []
+        for b in bands:
+            img_bands.append(normalise(self.image.read(b)))
+
+        # Stack bands
+        nrg = np.dstack(img_bands)
+
+        # View the color composite
+        ax.imshow(nrg)
+        ax.set_title(f'{title}')
+        if show_plot:
+            plt.show()
+        return ax
+
+    def plot_nir(self, ax=None, show_plot=False):
         """
         Thank you aaron you're a G whoever you are!
         https://gis.stackexchange.com/questions/306164/how-to-visualize-multiband-imagery-using-rasterio
@@ -178,9 +203,9 @@ class Image(Remsenso):
         if ax is None:
             fig, ax = plt.subplots()
         # Convert to numpy arrays
-        nir = self.ortho.read(4)
-        red = self.ortho.read(3)
-        green = self.ortho.read(2)
+        nir = self.image.read(4)
+        red = self.image.read(3)
+        green = self.image.read(2)
 
         # Normalize band DN
         nir_norm = normalise(nir)
@@ -220,7 +245,7 @@ class Image(Remsenso):
         :return: ax
         """
         # Plot the first band
-        band1 = self.ortho.read(band)
+        band1 = self.image.read(band)
         return self.plot_idx(band1, ax, show_plot)
 
     def load_image(self, image_path=None, plot=False):
@@ -230,18 +255,18 @@ class Image(Remsenso):
         :param plot: whether or not to plot it
         :return:
         """
-        self.ortho = rasterio.open(image_path)
+        self.image = rasterio.open(image_path)
 
         if self._verbose:
-            self.u.dp(['left edge coord:', self.ortho.bounds[0],
-                      '\nbottom edge coord:', self.ortho.bounds[1],
-                       '\nright edge coord:', self.ortho.bounds[2],
-                       '\ntop edge coord:', self.ortho.bounds[3],
-                       '\ndataset width:', self.ortho.width,
-                       '\ndataset height:', self.ortho.height,
-                       '\nnumber of bands:', self.ortho.indexes,  # Get bands
-                       '\ngeo ref system:', self.ortho.crs,
-                       '\ndata transform\n', self.ortho.transform
+            self.u.dp(['left edge coord:', self.image.bounds[0],
+                      '\nbottom edge coord:', self.image.bounds[1],
+                       '\nright edge coord:', self.image.bounds[2],
+                       '\ntop edge coord:', self.image.bounds[3],
+                       '\ndataset width:', self.image.width,
+                       '\ndataset height:', self.image.height,
+                       '\nnumber of bands:', self.image.indexes,  # Get bands
+                       '\ngeo ref system:', self.image.crs,
+                       '\ndata transform\n', self.image.transform
                        ])
 
         if plot:

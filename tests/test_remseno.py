@@ -49,22 +49,46 @@ class TestClass(unittest.TestCase):
         shutil.rmtree(self.tmp_dir)
 
 
+drone_dir = '../data/dryad_trees/'
+drone_ortho = '../data/dryad_trees/Stitch_Image/20190518_pasture_100ft_RGB_GCPs_Forest.tif'
+drone_coords = '../data/dryad_trees/dryad_cedar_pine/theredcedar_xy.csv'
+drone_pine_coords = '../data/dryad_trees/dryad_cedar_pine/pine_class.csv'
+
+
+# df = pd.read_csv(drone_pine_coords)
+# df['class'] = ['class1' if i % 2 == 0 else 'class2' for i in range(0, len(df))]
+# df.to_csv('../data/dryad_trees/dryad_cedar_pine/pine_class.csv', index=False)
+
+
 class TestRemsenso(TestClass):
+
+    def get_test_coords(self):
+        c = Coords(drone_pine_coords, x_col='Y', y_col='X', label_col='class',
+                   id_col='id', sep=',', class1='class1', class2='class2')
+        c.transform_coords(tree_coords="EPSG:4326", image_coords="EPSG:32614", plot=True)
+        return c
+
+    def get_test_ortho(self):
+        o = Image()
+        o.load_image(image_path=drone_ortho)
+        return o
 
     def test_image(self):
         # Test image loading
-        o = Image()
-        #o.load_image(image_path='../data/public_data/image_waeldi_agisoft_2.tif') #waeldi.tif')
-        #o.load_image(image_path='../scripts/172110d8-234b-422a-b2bc-137d3792e666/PSScene/20220302_085116_40_241b_3B_AnalyticMS_SR_8b_clip.tif')
-        o.load_image(image_path='/Users/ariane/Desktop/Raw_Images/DJI_0216.png')#Stitch_Image/20190518_pasture_100ft_RGB_GCPs_Forest.tif')
+        o = self.get_test_ortho()
         o.plot(1)
         o.plot(2)
 
+    def test_coords(self):
+        # Test coords loading: Tech debt need to swap X and Y over...
+        c = self.get_test_coords()
+        o = self.get_test_ortho()
+        c.plot_on_image(o)
+        plt.show()
+
     def test_draw_bb(self):
         # Test coords loading
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        c.transform_coords(tree_coords="EPSG:21781", image_coords="EPSG:4326", plot=False) #EPSG: 4326
+        c = self.get_test_coords()
         df = c.df
         x = df[c.x_col].values[0]
         y = df[c.y_col].values[0]
@@ -78,17 +102,13 @@ class TestRemsenso(TestClass):
         plt.show()
 
     def test_multi_band(self):
-        o = Image()
-        o.load_image(image_path='../data/public_data/waldi_april.tif')
-        o.plot_multi_bands()
+        o = self.get_test_ortho()
+        o.plot_multi_bands([1, 2, 3])
         plt.show()
 
     def test_multi_band_subset(self):
-        o = Image()
-        o.load_image(image_path='../data/public_data/waldi_april.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        c.transform_coords(tree_coords="EPSG:21781", image_coords="EPSG:32632", plot=False) #EPSG: 4326
+        o = self.get_test_ortho()
+        c = self.get_test_coords()
         df = c.df
         fig, ax = plt.subplots()
         x = df[c.x_col].values[0]
@@ -97,7 +117,7 @@ class TestRemsenso(TestClass):
         bb = c.build_circle_from_centre_point(x, y, 3)
         xs = []
         ys = []
-        ax = o.plot_multi_bands(ax)
+        ax = o.plot_multi_bands([1, 2, 3])
         for b in bb:
             xs.append(b[0])
             ys.append(b[1])
@@ -112,10 +132,8 @@ class TestRemsenso(TestClass):
 
     def test_plot_circle(self):
         # Test coords loading
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
+        o = self.get_test_ortho()
+        c = self.get_test_coords()
         df = c.df
         ax = o.plot(2, show_plot=False)
 
@@ -134,7 +152,6 @@ class TestRemsenso(TestClass):
         plt.xlim([min(xs) - pixel_buffer, max(xs) + pixel_buffer])
         plt.ylim([min(ys) - pixel_buffer, max(ys) + pixel_buffer])
         plt.show()
-
 
     def test_draw_circle(self):
         # Test coords loading
@@ -195,13 +212,6 @@ class TestRemsenso(TestClass):
         plt.title("Bounding box plot")
         plt.show()
 
-    def test_coords(self):
-        # Test coords loading
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c.plot_on_image(o)
 
     def test_sr(self):
         img = Index()
