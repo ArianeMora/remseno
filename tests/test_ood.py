@@ -15,38 +15,8 @@
 #                                                                             #
 ###############################################################################
 
-import os
-import shutil
-import tempfile
-import unittest
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-from remseno import *
 from remseno.indices import *
-
-
-class TestClass(unittest.TestCase):
-
-    @classmethod
-    def setup_class(self):
-        local = True
-        # Create a base object since it will be the same for all the tests
-        THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-
-        self.data_dir = os.path.join(THIS_DIR, 'remsenso/')
-        if local:
-            self.tmp_dir = os.path.join(THIS_DIR, 'remsenso/tmp/')
-            if os.path.exists(self.tmp_dir):
-                shutil.rmtree(self.tmp_dir)
-            os.mkdir(self.tmp_dir)
-        else:
-            self.tmp_dir = tempfile.mkdtemp(prefix='remsenso')
-
-    @classmethod
-    def teardown_class(self):
-        shutil.rmtree(self.tmp_dir)
+from tests.test_remseno import TestRemsenso
 
 
 drone_dir = '../data/dryad_trees/'
@@ -55,12 +25,7 @@ drone_coords = '../data/dryad_trees/dryad_cedar_pine/theredcedar_xy.csv'
 drone_pine_coords = '../data/dryad_trees/dryad_cedar_pine/pine_class.csv'
 
 
-# df = pd.read_csv(drone_pine_coords)
-# df['class'] = ['class1' if i % 2 == 0 else 'class2' for i in range(0, len(df))]
-# df.to_csv('../data/dryad_trees/dryad_cedar_pine/pine_class.csv', index=False)
-
-
-class TestOOD(TestClass):
+class TestOOD(TestRemsenso):
 
     def get_test_coords(self):
         c = Coords(drone_pine_coords, x_col='Y', y_col='X', label_col='class',
