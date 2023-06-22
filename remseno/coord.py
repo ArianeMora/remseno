@@ -71,20 +71,20 @@ class Coords(Remsenso):
             plt.show()
 
         # If you notice that it looks wrong you might need to remove some data or points
-    def plot_on_image(self, ortho, band=1):
+    def plot_on_image(self, image, band=1):
         """
         Plot the coords on an orthosomaic
         :param ortho:
         :return:
         """
         fig, ax = plt.subplots()
-        ax = ortho.plot(band=band, ax=ax, show_plot=False)
+        ax = image.plot(band=band, ax=ax, show_plot=False)
         ys = self.df[self.y_col].values
         self.df[f'colour'] = ['blue' if c == 0 else 'red' for c in self.df['binary_label'].values]
         colours = self.df[f'colour'].values
 
         for i, x in enumerate(self.df[self.x_col].values):
-            y, x = ortho.ortho.index(x, ys[i])
+            y, x = image.image.index(x, ys[i])
             ax.scatter(x, y, c=colours[i])
         return ax
 

@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from remseno import *
-from remseno.indices import Index
+from remseno.indices import *
 
 
 class TestClass(unittest.TestCase):
@@ -124,7 +124,7 @@ class TestRemsenso(TestClass):
             ax.scatter(b[0], b[1], s=3)
         plt.title("Bounding box circle")
 
-        # Add this to get subimage
+        # Add this to get sub-image
         pixel_buffer = 20
         plt.xlim([min(xs) - pixel_buffer, max(xs) + pixel_buffer])
         plt.ylim([min(ys) - pixel_buffer, max(ys) + pixel_buffer])
@@ -155,11 +155,8 @@ class TestRemsenso(TestClass):
 
     def test_draw_circle(self):
         # Test coords loading
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        c.transform_coords(tree_coords="EPSG:21781", image_coords="EPSG:4326", plot=False) #EPSG: 4326
+        o = self.get_test_ortho()
+        c = self.get_test_coords()
         df = c.df
         x = df[c.x_col].values[0]
         y = df[c.y_col].values[0]
@@ -172,10 +169,8 @@ class TestRemsenso(TestClass):
 
     def test_circle_on_image(self):
         # Test coords loading
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
+        o = self.get_test_ortho()
+        c = self.get_test_coords()
         df = c.df
         ax = o.plot(2, show_plot=False)
         for i in range(0, len(df)):
@@ -189,19 +184,18 @@ class TestRemsenso(TestClass):
         plt.show()
 
     def test_draw_bb_on_image(self):
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
+        o = self.get_test_ortho()
+        c = self.get_test_coords()
         ax = c.plot_on_image(o)
-        # Transform to make bb
-        c.transform_coords(tree_coords="EPSG:21781", image_coords="EPSG:4326", plot=False) #EPSG: 4326
+        # Coords need to be transformed... then transformed back
+        c.transform_coords("EPSG:32614", "EPSG:4326")
         df = c.df
+
         for i in range(0, len(df)):
             x = df[c.x_col].values[i]
             y = df[c.y_col].values[i]
             bb = c.build_polygon_from_centre_point(x, y, 20, 20)
-            bb = [c.transform_coord(b[0], b[1], "EPSG:4326", "EPSG:21781") for b in bb]
+            bb = [c.transform_coord(b[0], b[1], "EPSG:4326", "EPSG:32614") for b in bb]
             bb = [o.image.index(b[0], b[1]) for b in bb]
             xs = [b[1] for b in bb]
             ys = [b[0] for b in bb]
@@ -210,150 +204,4 @@ class TestRemsenso(TestClass):
 
             ax.plot(xs, ys)
         plt.title("Bounding box plot")
-        plt.show()
-
-
-    def test_sr(self):
-        img = Index()
-        o = Image()
-        o.load_image(image_path='../data/public_data/waldi_july.tif')
-        sr = img.get_sr(image= o.image, nir_band=8, red_band=6, )
-        o.plot_idx(sr)
-
-    def test_ml(self):
-        ml = ML()
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        ml.binary_classifier(image=o, coords=c, bands=[1, 2, 3, 4])
-
-    def test_training_ml(self):
-        # Make a list of training datasets
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        o1 = Image()
-        o1.load_image(image_path='../data/public_data/waeldi.tif')
-
-        o2 = Image()
-        o2.load_image(image_path='../data/public_data/waeldi.tif')
-
-        o3 = Image()
-        o3.load_image(image_path='../data/public_data/waeldi.tif')
-
-        ml = ML()
-        train_df = ml.create_training_dataset(image_list=[o1, o2, o3], bands=[1, 2], coords=c, max_pixel_padding=2)
-        print(train_df.head())
-
-    def test_train_df(self):
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        ood = OOD()
-        tdf = ood.build_train_df(image=o, coords=c, bands=[o.get_band(b) for b in [1, 2, 3, 4]],
-                                 max_pixel_padding=3)
-        print(tdf)
-
-    def test_ood_train(self):
-        # Test trianing a VAE for checking OOD
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        ood = OOD(o, c)
-        dist = ood.train_ood(image=o, coords=c, bands=[o.get_band(b) for b in [1, 2, 3, 4]],
-                                 max_pixel_padding=3)
-        plt.hist(dist[:, 0])
-        plt.show()
-
-    def test_load_ood(self):
-        # Load presaved model
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        ood = OOD(o, c)
-        ood.load_saved_vae()
-        print('loaded')
-
-    def test_ood_predict(self):
-        # Test trianing a VAE for checking OOD
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        ood = OOD(o, c)
-        ood.load_saved_vae()
-        print('loaded')
-        # Now check prediction using waeldi ood
-
-        oo_c = Coords('data/ood_waeldi.csv', x_col='Y', y_col='X', label_col='class',
-                   id_col='id', sep=',', class1=0, class2=0)
-        # Transform coords
-        oo_c.transform_coords(tree_coords="EPSG:4326", image_coords="EPSG:21781", plot=False) #EPSG: 4326
-
-        # Build train df --> needs to be as above
-        labels = [f'b{i}' for i in [1, 2, 3, 4]]
-        df, labels = ood.build_train_df(o, oo_c, bands=[o.get_band(b) for b in [1, 2, 3, 4]],
-                                 max_pixel_padding=1, band_labels=labels)
-
-        df['pred'], pred = ood.classify_ood(df[labels].values)
-        print(df)
-        plt.hist(pred[:, 0])
-        plt.show()
-        print(len(df[df['pred'] == True]))
-        df, labels = ood.build_train_df(o, c, bands=[o.get_band(b) for b in [1, 2, 3, 4]],
-                                        max_pixel_padding=1, band_labels=labels)
-        df['pred'], pred = ood.classify_ood(df[labels].values)
-        print(df)
-        plt.hist(pred[:, 0])
-        print(len(df[df['pred'] == True]))
-        plt.show()
-
-    def test_mask_ndvi(self):
-        o = Image()
-        o.load_image(image_path='../data/public_data/waldi_july.tif')
-        sr = o.get_sr(nir_band=8, red_band=6)
-        sr = np.nan_to_num(sr)
-        print(np.min(sr), np.max(sr))
-        mask = o.mask_on_index(sr, 10)
-        plt.imshow(mask)
-        plt.show()
-        # Check how it looks with the masking of the image
-        plt.imshow(mask*o.get_band(1))
-        plt.show()
-
-    def test_ood_train_hyper(self):
-        # Test trianing a VAE for checking OOD
-        o = Image()
-        o.load_image(image_path='../data/public_data/waldi_july.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        c.transform_coords(tree_coords="EPSG:21781", image_coords="EPSG:4326", plot=False) #EPSG: 4326
-
-        oo_c = Coords('data/ood_waeldi.csv', x_col='Y', y_col='X', label_col='class',
-                   id_col='id', sep=',', class1=0, class2=0)
-        ood = OOD(o, c)
-        ood.load_saved_vae()
-        #
-        # dist = ood.train_ood(image=o, coords=c, bands=[o.get_band(b) for b in [1, 2, 3, 4, 5, 6, 7, 8]],
-        #                      max_pixel_padding=3)
-        plt.show()
-        bands = [1, 2, 3, 4, 5, 6, 7, 8]
-        labels = [f'b{i}' for i in bands]
-        df, labels = ood.build_train_df(o, oo_c, bands=[o.get_band(b) for b in bands],
-                                 max_pixel_padding=1, band_labels=labels)
-
-        df['pred'], pred = ood.classify_ood(df[labels].values)
-        print(df)
-        plt.hist(pred[:, 0])
-        plt.show()
-        print(len(df[df['pred'] == True]))
-        df, labels = ood.build_train_df(o, c, bands=[o.get_band(b) for b in bands],
-                                        max_pixel_padding=1, band_labels=labels)
-        df['pred'], pred = ood.classify_ood(df[labels].values)
-        print(df)
-        plt.hist(pred[:, 0])
-        print(len(df[df['pred'] == True]))
         plt.show()
