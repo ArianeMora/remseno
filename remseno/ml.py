@@ -18,13 +18,9 @@
 """
 Machine learning component of the project.
 """
-from remseno.ortho import Ortho
-from remseno.coord import Coords
-from sklearn.pipeline import make_pipeline
 import pandas as pd
 import seaborn as sns
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_score
 from sklearn import preprocessing
 from sklearn import svm
 import matplotlib.pyplot as plt

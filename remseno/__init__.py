@@ -27,6 +27,6 @@ __license__ = 'GPL3'
 from remseno.base import *
 from remseno import *
 from remseno.coord import *
-from remseno.ortho import *
+from remseno.image import *
 from remseno.ml import *
 from remseno.ood import *

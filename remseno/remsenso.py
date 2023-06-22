@@ -19,7 +19,7 @@
 Class that combines remote sensing data and builds a classifier on it
 """
 
-from ortho import Ortho
+from image import Image
 from coord import Coords
 
 
@@ -37,9 +37,9 @@ class Remsenso:
         :param ortho_list:
         :return:
         """
-        for ortho_path in ortho_list:
-            ortho = Ortho()
-            self.orthos.append(ortho.load_ortho(ortho_path))
+        for image_path in ortho_list:
+            ortho = Image()
+            self.orthos.append(ortho.image_path(image_path))
 
     def view_ortho(self, ortho_id=None, band=1):
         """

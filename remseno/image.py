@@ -42,11 +42,11 @@ def normalise(array):
     return (array - array_min) / (array_max - array_min)
 
 
-class Ortho(Remsenso):
+class Image(Remsenso):
 
     def __init__(self):
         super().__init__()
-        self.ortho = None
+        self.image = None
 
     def get_bands(self):
         """
@@ -81,7 +81,7 @@ class Ortho(Remsenso):
         """
         return self.ortho.read(band_index)
 
-    def rename_photos(self, flight_dir: str, output_dir: str):
+    def rename_ortho_photos(self, flight_dir: str, output_dir: str):
         """
         # 1. Rename images and put them in a single folder
 
@@ -223,15 +223,14 @@ class Ortho(Remsenso):
         band1 = self.ortho.read(band)
         return self.plot_idx(band1, ax, show_plot)
 
-    def load_ortho(self, ortho_path=None, plot=False, ortho_type='drone'):
+    def load_image(self, image_path=None, plot=False):
         """
         https://rasterio.readthedocs.io/en/latest/quickstart.html
-        :param ortho_path: Loads the ortho photo into memory
+        :param image_path: Loads the ortho photo into memory
         :param plot: whether or not to plot it
-        :paran ortho_type: type either "drone" or "sat"
         :return:
         """
-        self.ortho = rasterio.open(ortho_path)
+        self.ortho = rasterio.open(image_path)
 
         if self._verbose:
             self.u.dp(['left edge coord:', self.ortho.bounds[0],

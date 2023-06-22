@@ -100,7 +100,7 @@ class Coords(Remsenso):
         transformer = Transformer.from_crs(src, dest)
         return transformer.transform(x, y)  # Double check this on QGIS
 
-    def transform_coords(self, tree_coords: str, ortho_coords: str, plot=True):
+    def transform_coords(self, tree_coords: str, image_coords: str, plot=True):
         """
         ## 5. Transform coordinates if necessary
 
@@ -120,7 +120,7 @@ class Coords(Remsenso):
         :return:
         """
 
-        transformer = Transformer.from_crs(tree_coords, ortho_coords)
+        transformer = Transformer.from_crs(tree_coords, image_coords)
 
         # Now we transform each of the x and y params
         # Convert x and y to the new coord system
@@ -144,7 +144,7 @@ class Coords(Remsenso):
             # Replot them now
             plt.scatter(self.df[self.x_col], self.df[self.y_col], c=self.df[self.binary_label].values)
             # Drop the outlier and looks about right woo!
-            plt.title(f'Coords transformed: {tree_coords} --> {ortho_coords}')
+            plt.title(f'Coords transformed: {tree_coords} --> {image_coords}')
             plt.xlabel(self.x_col)
             plt.ylabel(self.y_col)
             plt.show()

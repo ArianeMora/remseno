@@ -110,7 +110,7 @@ class OOD:
         # Also save to instance so we can use it for this iteration
         return encoded_data_vae_mse
 
-    def classify_ood(self, data_np, cutoff=1.0):
+    def classify_ood(self, data_np: np.array, cutoff=1.0):
         """
         Classify whether the points in a df are ood
         :param df:
