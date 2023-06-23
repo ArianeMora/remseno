@@ -70,7 +70,7 @@ class TestRemsenso(TestClass):
 
     def get_test_ortho(self):
         o = Image()
-        o.load_image(image_path=drone_ortho)
+        o.load_image(image_path='../data/palm_ortho_sharpened.tif') #drone_ortho)
         return o
 
     def test_image(self):
