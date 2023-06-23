@@ -93,6 +93,7 @@ class TestRemsenso(TestClass):
         x = df[c.x_col].values[0]
         y = df[c.y_col].values[0]
         bb = c.build_polygon_from_centre_point(x, y, 20, 20)
+        print(bb)
         xs = [b[0] for b in bb]
         ys = [b[1] for b in bb]
         for b in bb:
