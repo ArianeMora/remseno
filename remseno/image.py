@@ -222,7 +222,7 @@ class Image(Remsenso):
             plt.show()
         return ax
 
-    def plot_subset(self, roi: list, bands: list):
+    def plot_subset(self, roi: dict, bands: list, ax=None, title='', show_plot=True):
         """
         Save a subset of an image based on a region of interest and the bands
         thayt you want to save.
@@ -231,9 +231,28 @@ class Image(Remsenso):
         https://rasterio.readthedocs.io/en/stable/quickstart.html#creating-data
         :param roi: region of interest e.g. build_polygon_from_centre_point or build_circle_from_centre_point
         :param bands: bands as a list
+        :param ax: figure axes
+        :param title:
+        :param show_plot
         :return:
         """
-        return
+        if ax is None:
+            fig, ax = plt.subplots()
+        # Convert to numpy arrays
+        img_bands = []
+        for b in bands:
+            ds = self.image.read(b)[roi['x1']:roi['x2'], roi['y1']:roi['y2']]  # Now filter if the pixels are in the ROI
+            img_bands.append(normalise(ds))
+
+        # Stack bands
+        nrg = np.dstack(img_bands)
+
+        # View the color composite
+        ax.imshow(nrg)
+        ax.set_title(f'{title}')
+        if show_plot:
+            plt.show()
+        return ax
 
     def plot(self, band: int, ax=None, show_plot=True):
         """

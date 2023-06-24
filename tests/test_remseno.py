@@ -70,7 +70,7 @@ class TestRemsenso(TestClass):
 
     def get_test_ortho(self):
         o = Image()
-        o.load_image(image_path='../data/palm_ortho_sharpened.tif') #drone_ortho)
+        o.load_image(image_path=drone_ortho)
         return o
 
     def test_image(self):
@@ -137,21 +137,44 @@ class TestRemsenso(TestClass):
         c = self.get_test_coords()
         df = c.df
         ax = o.plot(2, show_plot=False)
-
         x = df[c.x_col].values[0]
         y = df[c.y_col].values[0]
         y, x = o.image.index(x, y)
-        bb = c.build_circle_from_centre_point(x, y, 8)
+        bb = c.build_circle_from_centre_point(x, y, 100)
         xs = []
         ys = []
         for b in bb:
             xs.append(b[0])
             ys.append(b[1])
-            ax.scatter(b[0], b[1], s=8)
+        ax.scatter(xs, ys, s=8)
         plt.title("Bounding box circle")
-        pixel_buffer = 10
+        pixel_buffer = 1000
         plt.xlim([min(xs) - pixel_buffer, max(xs) + pixel_buffer])
         plt.ylim([min(ys) - pixel_buffer, max(ys) + pixel_buffer])
+        plt.show()
+
+    def test_plot_subset_circle(self):
+        # Test plotting just a subset in mutliple bands --> good for large images!
+        o = self.get_test_ortho()
+        c = self.get_test_coords()
+        df = c.df
+        x = df[c.x_col].values[0]
+        y = df[c.y_col].values[0]
+        y, x = o.image.index(x, y)
+        bb = c.build_circle_from_centre_point(x, y, 100)
+        xs = []
+        ys = []
+        for b in bb:
+            xs.append(b[0])
+            ys.append(b[1])
+        plt.title("Bounding box circle")
+        pixel_buffer = 1000
+        roi = {'x1': min(xs) - pixel_buffer, 'x2': max(xs) + pixel_buffer,
+               'y1': min(ys) - pixel_buffer, 'y2': max(ys) + pixel_buffer}
+        ax = o.plot_subset(roi, [1, 2, 3], show_plot=False)
+        xs = [x - min(xs) for x in xs]
+        ys = [y - min(ys) for y in ys]
+        ax.scatter(xs, ys, s=8)
         plt.show()
 
     def test_draw_circle(self):
@@ -162,7 +185,7 @@ class TestRemsenso(TestClass):
         x = df[c.x_col].values[0]
         y = df[c.y_col].values[0]
         y, x = o.image.index(x, y)
-        bb = c.build_circle_from_centre_point(x, y, 5)
+        bb = c.build_circle_from_centre_point(x, y, 2)
         for b in bb:
             plt.scatter(b[0], b[1])
         plt.title("Bounding box circle")
@@ -174,7 +197,7 @@ class TestRemsenso(TestClass):
         c = self.get_test_coords()
         df = c.df
         ax = o.plot(2, show_plot=False)
-        for i in range(0, len(df)):
+        for i in range(0, 2):
             x = df[c.x_col].values[i]
             y = df[c.y_col].values[i]
             y, x = o.image.index(x, y)
@@ -189,20 +212,17 @@ class TestRemsenso(TestClass):
         c = self.get_test_coords()
         ax = c.plot_on_image(o)
         # Coords need to be transformed... then transformed back
-        c.transform_coords("EPSG:32614", "EPSG:4326")
+        c.transform_coords("EPSG:32614", "EPSG:4326", plot=False)
         df = c.df
 
         for i in range(0, len(df)):
             x = df[c.x_col].values[i]
             y = df[c.y_col].values[i]
-            bb = c.build_polygon_from_centre_point(x, y, 20, 20)
+            bb = c.build_polygon_from_centre_point(x, y, 6, 2)
             bb = [c.transform_coord(b[0], b[1], "EPSG:4326", "EPSG:32614") for b in bb]
             bb = [o.image.index(b[0], b[1]) for b in bb]
             xs = [b[1] for b in bb]
             ys = [b[0] for b in bb]
-            for b in bb:
-                print(b)
-
             ax.plot(xs, ys)
         plt.title("Bounding box plot")
         plt.show()
