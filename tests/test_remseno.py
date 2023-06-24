@@ -51,8 +51,8 @@ class TestClass(unittest.TestCase):
 
 drone_dir = '../data/dryad_trees/'
 drone_ortho = '../data/dryad_trees/Stitch_Image/20190518_pasture_100ft_RGB_GCPs_Forest.tif'
-drone_coords = '../data/dryad_trees/dryad_cedar_pine/theredcedar_xy.csv'
-drone_pine_coords = '../data/dryad_trees/dryad_cedar_pine/pine_class.csv'
+drone_coords = '../data/dryad_trees/location_files/Annotations.csv'
+drone_pine_coords = '../data/dryad_trees/location_files/Annotations.csv' #'../data/dryad_trees/dryad_cedar_pine/pine_class.csv'
 
 
 # df = pd.read_csv(drone_pine_coords)
@@ -64,7 +64,7 @@ class TestRemsenso(TestClass):
 
     def get_test_coords(self):
         c = Coords(drone_pine_coords, x_col='Y', y_col='X', label_col='class',
-                   id_col='id', sep=',', class1='class1', class2='class2')
+                   id_col='id', sep=',', class1='RedCedar', class2='Pine')
         c.transform_coords(tree_coords="EPSG:4326", image_coords="EPSG:32614", plot=True)
         return c
 
@@ -72,6 +72,11 @@ class TestRemsenso(TestClass):
         o = Image()
         o.load_image(image_path=drone_ortho)
         return o
+
+    def test_plot_downsample(self):
+        o = self.get_test_ortho()
+        o.plot_downsample([1, 2, 3], pixels=10)
+        plt.show()
 
     def test_image(self):
         # Test image loading

@@ -254,6 +254,31 @@ class Image(Remsenso):
             plt.show()
         return ax
 
+    def plot_downsample(self, bands, ax=None, title='', show_plot=True, pixels=2):
+        """
+        Plot the whole image
+        :return:
+        """
+        #rasterio.plot.show(self.image, adjust=True)
+
+        if ax is None:
+            fig, ax = plt.subplots()
+        # Convert to numpy arrays
+        img_bands = []
+        for b in bands:
+            ds = self.image.read(b)[::pixels, ::pixels]
+            img_bands.append(normalise(ds))
+
+        # Stack bands
+        nrg = np.dstack(img_bands)
+
+        # View the color composite
+        ax.imshow(nrg)
+        ax.set_title(f'{title}')
+        if show_plot:
+            plt.show()
+        return ax
+
     def plot(self, band: int, ax=None, show_plot=True):
         """
         Plot specific bands.
