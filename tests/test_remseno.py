@@ -161,7 +161,7 @@ class TestRemsenso(TestClass):
         x = df[c.x_col].values[0]
         y = df[c.y_col].values[0]
         y, x = o.image.index(x, y)
-        bb = c.build_circle_from_centre_point(x, y, 100)
+        bb = c.build_circle_from_centre_point(x, y, 20)
         xs = []
         ys = []
         for b in bb:
@@ -172,8 +172,8 @@ class TestRemsenso(TestClass):
         roi = {'x1': min(xs) - pixel_buffer, 'x2': max(xs) + pixel_buffer,
                'y1': min(ys) - pixel_buffer, 'y2': max(ys) + pixel_buffer}
         ax = o.plot_subset(roi, [1, 2, 3], show_plot=False)
-        xs = [x - min(xs) for x in xs]
-        ys = [y - min(ys) for y in ys]
+        xs = [pixel_buffer + (x - min(xs)) for x in xs]
+        ys = [pixel_buffer + (y - min(ys)) for y in ys]
         ax.scatter(xs, ys, s=8)
         plt.show()
 

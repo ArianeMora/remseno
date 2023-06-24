@@ -241,7 +241,7 @@ class Image(Remsenso):
         # Convert to numpy arrays
         img_bands = []
         for b in bands:
-            ds = self.image.read(b)[roi['x1']:roi['x2'], roi['y1']:roi['y2']]  # Now filter if the pixels are in the ROI
+            ds = self.image.read(b)[roi['y1']:roi['y2'], roi['x1']:roi['x2']]  # Now filter if the pixels are in the ROI
             img_bands.append(normalise(ds))
 
         # Stack bands
