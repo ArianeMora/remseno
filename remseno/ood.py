@@ -32,7 +32,9 @@ class OOD:
         self.coords = coords
         self.train_df = None
         self.training_cols = None
-        self.num_pix = None
+        self.num_pix_x = None
+        self.shape = None
+        self.num_pix_y = None
         if not config:
             self.config = {'scale_data': True,
                           # Whether to min max scale your data VAEs work best when data is pre-normalised & outliers removed for trainiing
@@ -57,7 +59,7 @@ class OOD:
         self.vae = VAE([[0]], [[0]], [[0]], self.config, '')
         self.vae.load(weight_file_path, optimizer_file_path, config_json, load_data, data_filename)
 
-    def build_train_df(self, image, coords, bands, width_m=1, height_m=1, max_pixel_padding=2, band_labels=None):
+    def build_train_df(self, image, coords, bands, width_m=1, height_m=1, downsample=2, band_labels=None):
         """
         Build a training dataframe from image and coordinate files!
 
@@ -77,35 +79,48 @@ class OOD:
         #image_bands = [image.ortho.get_band(b) for b in bands]
         classes = df[coords.binary_label].values
         for i, tid in enumerate(df[coords.id_col].values):
-            y, x = image.image.index(xs[i], ys[i])
             # Now for each bounding area make a training point
-            bb = coords.build_polygon_from_centre_point(ys[i], xs[i], width_m, height_m)
-            bb = [image.image.index(x[0], x[1]) for x in bb]
-            data_row = [tid, classes[i]]
-            for image_band in bands:
-                # Here we are extracting the feature i.e. the value from the image bands we're interested in
-                x0 = min([x[1] for x in bb])
-                x1 = max([x[1] for x in bb])
-                y0 = min([x[0] for x in bb])
-                y1 = max([x[0] for x in bb])
-                data_row += list(image_band[y1:y0, x1:x0])
-                self.num_pix = x0-x1
-            rows.append(data_row)
+            bb0 = coords.build_polygon_from_centre_point(xs[i], ys[i], width_m, height_m, str(image.image.crs))
+            bb = [image.image.index(x[0], x[1]) for x in bb0]
+            for permute in range(-100, 100, 10):  # Do a range of datapoints
+                data_row = [tid, classes[i]]
+                values = []
+                for image_band in bands:
+                    # Here we are extracting the feature i.e. the value from the image bands we're interested in
+                    x0 = min([x[1] for x in bb])+permute
+                    x1 = max([x[1] for x in bb])+permute
+                    y0 = min([x[0] for x in bb])+permute
+                    y1 = max([x[0] for x in bb])+permute
+                    val = image_band[y0:y1, x0:x1][::downsample, ::downsample]
+                    values.append(np.array(val))
+                    self.num_pix_y = int((y1-y0)/downsample)
+                    self.num_pix_x = int((x1-x0)/downsample)
+                values = np.array(values)
+                self.shape = values.shape
+                values = values.flatten()
+                rows.append(data_row + list(values))
         # Now create a dataframe from this
         train_df = pd.DataFrame(rows) #, columns=[coords.id_col, coords.binary_label, coords.x_col, coords.y_col] + band_labels)
+        # For
+        for col in train_df.columns[2:]:
+            train_df[col] = train_df[col].values/np.nanmean(train_df[col].values)
+            train_df[col] = (train_df[col].values-np.nanmin(train_df[col].values))/(np.nanmax(train_df[col].values)-np.nanmin(train_df[col].values))
+        train_df = train_df.fillna(0)
         return train_df, train_df.columns[2:]
 
-    def train_ood(self, image, coords, bands, config=None, max_pixel_padding=2, width_m=1, height_m=1, band_labels=None):
+    def train_ood(self, image, coords, bands, config=None, downsample=2, width_m=1, height_m=1, band_labels=None):
         """
         Train an OOD classifier (i.e. a VAE) to check if a pixel is out of expected distribution.
 
         :return: VAE or something
         """
         # Build training DF
-        df, training_cols = self.build_train_df(image, coords, bands,  width_m=width_m, height_m=height_m, max_pixel_padding=max_pixel_padding)
+        df, training_cols = self.build_train_df(image, coords, bands,  width_m=width_m, height_m=height_m, downsample=downsample)
         self.train_df = df
+        print("len training df", len(df))
         self.training_cols = training_cols
         numpy_array = df[training_cols].values
+
         # Train model
         config = self.config if config is None else config
         vae_mse = VAE(numpy_array, numpy_array, df.index, config, 'vae_label')

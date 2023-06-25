@@ -27,47 +27,50 @@ class TestOOD(TestRemsenso):
         # Test trianing a VAE for checking OOD
         o = self.get_test_ortho()
         c = self.get_test_coords()
-        config = {'scale_data': True,
+        config = {'scale_data': False,
                   'learning'
                           # Whether to min max scale your data VAEs work best when data is pre-normalised & outliers removed for trainiing
                           'batch_norm': True,
                           'loss': {'loss_type': 'mse',  # mean squared error
                                    'distance_metric': 'mmd',  # Maximum mean discrepency (can use kl but it works worse)
-                                   'mmd_weight': 0.001},
+                                   'mmd_weight': 0.1},
                           # Weight of mmd vs mse - basically having this > 1 will weigh making it normally distributed higher
                           # and making it < 1 will make reconstruction better.
-                          'encoding': {'layers': [{'num_nodes': 2, 'activation_fn': 'selu'}]},  # First layer of encoding
-                          'decoding': {'layers': [{'num_nodes': 2, 'activation_fn': 'selu'}]},  # Second layer of decoding
-                          'latent': {'num_nodes': 1},
+                          'encoding': {'layers': [{'num_nodes': 128, 'activation_fn': 'relu'}]},  # First layer of encoding
+                          'decoding': {'layers': [{'num_nodes': 128, 'activation_fn': 'relu'}]},  # Second layer of decoding
+                          'latent': {'num_nodes': 64},
                           'optimiser': {'params': {'learning_rate': 0.001}, 'name': 'adam'}}  # Empty params means use default
 
         ood = OOD(o, c, config=config)
-        mpp = 4
         dist = ood.train_ood(image=o, coords=c, bands=[o.get_band(b) for b in img_bands],
-                             width_m=1000, height_m=1000)
+                             width_m=2, height_m=2, downsample=10)
 
         # Now let's also plot the reconstruction
         plt.hist(dist[:, 0])
         plt.show()
         vae = ood.vae
-        encoding = vae.encode_new_data(ood.train_df[ood.training_cols].values, scale=True)
+        encoding = vae.encode_new_data(ood.train_df[ood.training_cols].values, scale=False)
         plt.figure(figsize=(20, 2))
         n = 5
         for i in range(n):
             d = vae.decoder.predict(np.array([encoding[i]]))[0]
             ax = plt.subplot(1, n, i + 1)
-            reshaped = d.reshape(ood.num_pix, ood.num_pix, 3) #(mpp*2)-1, (mpp*2)-1, 3)
-            plt.imshow(reshaped)
+            reshaped = d.reshape(ood.shape)
+            img = reshaped.swapaxes(0, 1)
+            img = img.swapaxes(1, 2)
+            plt.imshow(img)
         plt.show()
 
-        encoding = ood.train_df[ood.training_cols].values # i.e. just do the data
+        encoding = ood.train_df[ood.training_cols].values  # i.e. just do the data
         plt.figure(figsize=(20, 2))
         n = 5
         for i in range(n):
-            d = vae.decoder.predict(np.array([encoding[i]]))[0]
+            d = encoding[i]
             ax = plt.subplot(1, n, i + 1)
-            reshaped = d.reshape((mpp*2)-1, (mpp*2)-1, 3)
-            plt.imshow(reshaped)
+            reshaped = d.reshape(ood.shape)
+            img = reshaped.swapaxes(0, 1)
+            img = img.swapaxes(1, 2)
+            plt.imshow(img)
         plt.show()
 
     def test_load_ood(self):
