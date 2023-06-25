@@ -71,7 +71,7 @@ class OOD:
         #image_bands = [image.ortho.get_band(b) for b in bands]
         classes = df[coords.binary_label].values
         for i, tid in enumerate(df[coords.id_col].values):
-            y, x = image.ortho.index(xs[i], ys[i])
+            y, x = image.image.index(xs[i], ys[i])
             # Now for each bounding area make a training point
             bb = coords.build_circle_from_centre_point(x, y, max_pixel_padding)
             for xy in bb:

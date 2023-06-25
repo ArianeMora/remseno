@@ -150,7 +150,7 @@ class Image(Remsenso):
 
         self.u.warn_p(['You will need to copy and paste that command into your terminal now!'])
 
-    def plot_idx(self, band, ax=None, show_plot=False):
+    def plot_idx(self, band, ax=None, show_plot=False, downsample=None):
         """
         Plot specific bands or calculated index (as below but just uses the band already calcualted)
 
@@ -162,13 +162,15 @@ class Image(Remsenso):
         # Plot the first band
         if ax is None:
             fig, ax = plt.subplots()
+        if downsample:
+            band = band[::downsample, ::downsample]
         ax.imshow(band, cmap='pink')
         ax.set_title(f'{self.name}')
         if show_plot:
             plt.show()
         return ax
 
-    def plot_multi_bands(self, bands: list, title='', ax=None, show_plot=False):
+    def plot_multi_bands(self, bands: list, title='', ax=None, show_plot=False, downsample=None):
         """
         Plots multiple
         :param bands: a list of bands to plot
@@ -181,7 +183,10 @@ class Image(Remsenso):
         # Convert to numpy arrays
         img_bands = []
         for b in bands:
-            img_bands.append(normalise(self.image.read(b)))
+            ds = self.image.read(b)
+            if downsample:
+                ds = ds[::downsample, ::downsample]
+            img_bands.append(normalise(ds))
 
         # Stack bands
         nrg = np.dstack(img_bands)
@@ -254,32 +259,7 @@ class Image(Remsenso):
             plt.show()
         return ax
 
-    def plot_downsample(self, bands, ax=None, title='', show_plot=True, pixels=2):
-        """
-        Plot the whole image
-        :return:
-        """
-        #rasterio.plot.show(self.image, adjust=True)
-
-        if ax is None:
-            fig, ax = plt.subplots()
-        # Convert to numpy arrays
-        img_bands = []
-        for b in bands:
-            ds = self.image.read(b)[::pixels, ::pixels]
-            img_bands.append(normalise(ds))
-
-        # Stack bands
-        nrg = np.dstack(img_bands)
-
-        # View the color composite
-        ax.imshow(nrg)
-        ax.set_title(f'{title}')
-        if show_plot:
-            plt.show()
-        return ax
-
-    def plot(self, band: int, ax=None, show_plot=True):
+    def plot(self, band: int, ax=None, show_plot=True, downsample=None):
         """
         Plot specific bands.
 
@@ -290,7 +270,7 @@ class Image(Remsenso):
         """
         # Plot the first band
         band1 = self.image.read(band)
-        return self.plot_idx(band1, ax, show_plot)
+        return self.plot_idx(band1, ax, show_plot, downsample)
 
     def load_image(self, image_path=None, plot=False):
         """

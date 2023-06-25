@@ -89,9 +89,9 @@ class ML:
 
         return train_df
 
-    def binary_classifier(self, ortho, coords, bands: list, valid_size=0.25):
+    def binary_classifier(self, image, coords, bands: list, valid_size=0.25):
         df = coords.df
-        band1 = ortho.ortho.read(1)
+        band1 = image.image.read(1)
 
         # Build training dataset using the different channels in the tiff
         for pixel_padding in range(1, 10):
@@ -102,7 +102,7 @@ class ML:
                 ids = []
                 labels = []
                 bin_labels = []
-                curr_band = ortho.ortho.read(band)
+                curr_band = image.image.read(band)
                 # Also do the x, y values
                 x_new = []
                 y_new = []
@@ -110,7 +110,7 @@ class ML:
                 y_vals = df[coords.y_col].values
                 id_vals, bin_vals, lbl_vals = df[coords.id_col].values, df[coords.binary_label].values, df[coords.label_col].values
                 for i, x in enumerate(df[coords.x_col].values):
-                    y, x = ortho.ortho.index(x, y_vals[i])
+                    y, x = image.image.index(x, y_vals[i])
                     for xj in range(-pixel_padding, pixel_padding):
                         for yj in range(-pixel_padding, pixel_padding):
                             pixel_tree = curr_band[y + yj, x + xj]  # Check the direction!!!
@@ -177,7 +177,7 @@ class ML:
 
             for i, x in enumerate(df[coords.x_col].values):
                 try:
-                    y, x = ortho.ortho.index(x, ys[i])
+                    y, x = image.image.index(x, ys[i])
                     fig0.scatter(x, y, c=colours[i], s=10)
                 except:
                     print(i, x)
@@ -229,7 +229,7 @@ class ML:
 
             for i, x in enumerate(df[coords.x_col].values):
                 try:
-                    y, x = ortho.ortho.index(x, ys[i])
+                    y, x = image.image.index(x, ys[i])
                     fig1.scatter(x, y, c=colours[i], s=10)
                 except:
                     print(i, x)

@@ -33,11 +33,9 @@ class TestML(TestRemsenso):
 
     def test_ml(self):
         ml = ML()
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        ml.binary_classifier(image=o, coords=c, bands=[1, 2, 3, 4])
+        o = self.get_test_ortho()
+        c = self.get_test_coords()
+        ml.binary_classifier(image=o, coords=c, bands=[1, 2, 3])
 
     def test_training_ml(self):
         # Make a list of training datasets
@@ -57,11 +55,9 @@ class TestML(TestRemsenso):
         print(train_df.head())
 
     def test_train_df(self):
-        o = Image()
-        o.load_image(image_path='../data/public_data/waeldi.tif')
-        c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        ood = OOD()
-        tdf = ood.build_train_df(image=o, coords=c, bands=[o.get_band(b) for b in [1, 2, 3, 4]],
+        o = self.get_test_ortho()
+        c = self.get_test_coords()
+        ood = OOD(o, c)
+        tdf = ood.build_train_df(image=o, coords=c, bands=[o.get_band(b) for b in [1, 2, 3]],
                                  max_pixel_padding=3)
         print(tdf)
