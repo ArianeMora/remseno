@@ -54,7 +54,7 @@ class Coords(Remsenso):
         df = pd.read_csv(file_path, sep=self.sep)
         # Filter the dataframe to only include the two classes
         original_size = len(df)
-        df = df[df[self.label_col].isin([self.class1, self.class2])]
+        #df = df[df[self.label_col].isin([self.class1, self.class2])]
         self.u.dp(['Removed rows not in class1 or class2 i.e.', self.class1, self.class2, ' in column:', self.label_col,
                    'Your dataset origionally had:', original_size, '\nNow you have:', len(df)])
 

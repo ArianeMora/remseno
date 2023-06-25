@@ -73,9 +73,13 @@ class TestRemsenso(TestClass):
         o.load_image(image_path=drone_ortho)
         return o
 
+    def test_get_units(self):
+        o = self.get_test_ortho()
+        o.get_pix_to_m()
+
     def test_plot_downsample(self):
         o = self.get_test_ortho()
-        o.plot_downsample([1, 2, 3], pixels=10)
+        o.plot(1, downsample=10)
         plt.show()
 
     def test_image(self):

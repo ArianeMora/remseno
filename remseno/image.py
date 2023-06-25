@@ -16,6 +16,7 @@
 ###############################################################################
 from tqdm import tqdm
 import rasterio
+from rasterio.crs import CRS
 from rasterio.plot import show
 import matplotlib.pyplot as plt
 
@@ -54,6 +55,20 @@ class Image(Remsenso):
         :return:
         """
         return self.image.count
+
+    def get_pix_to_m(self):
+        """
+        Return x, y, units, pixel to m (or feet) resolution
+        :return:
+        """
+        # https://rasterio.readthedocs.io/en/stable/quickstart.html#dataset-attributes
+        crs = self.image.crs
+        x1 = self.image.transform * (1, 1)
+        x0 = self.image.transform * (0, 0)
+        if crs.linear_units_factor == 'metre':
+            return (x1[0] - x0[0])*100, (x1[1] - x0[1])*100, crs.linear_units_factor
+        else:
+            return (x1[0] - x0[0])*100, (x1[1] - x0[1]), crs.linear_units_factor
 
     def get_sr(self, nir_band: int, red_band: int):
         """
