@@ -82,7 +82,7 @@ class OOD:
             # Now for each bounding area make a training point
             bb0 = coords.build_polygon_from_centre_point(xs[i], ys[i], width_m, height_m, str(image.image.crs))
             bb = [image.image.index(x[0], x[1]) for x in bb0]
-            for permute in range(-100, 100, 10):  # Do a range of datapoints
+            for permute in range(-200, 200, 5):  # Do a range of datapoints
                 data_row = [tid, classes[i]]
                 values = []
                 for image_band in bands:
