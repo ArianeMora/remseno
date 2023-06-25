@@ -44,7 +44,7 @@ class TestOOD(TestRemsenso):
         ood = OOD(o, c, config=config)
         mpp = 4
         dist = ood.train_ood(image=o, coords=c, bands=[o.get_band(b) for b in img_bands],
-                             width_m=1, height_m=1)
+                             width_m=1000, height_m=1000)
 
         # Now let's also plot the reconstruction
         plt.hist(dist[:, 0])

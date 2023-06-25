@@ -16,9 +16,10 @@
 ###############################################################################
 from tqdm import tqdm
 import rasterio
-from rasterio.crs import CRS
 from rasterio.plot import show
 import matplotlib.pyplot as plt
+import rasterio.warp
+from rasterio.crs import CRS
 
 """
 Generates the orthomosaic using Open drone map.
@@ -48,7 +49,8 @@ class Image(Remsenso):
     def __init__(self):
         super().__init__()
         self.image = None
-
+        self.crs = None
+        
     def get_bands(self):
         """
         Get all the bands in an image

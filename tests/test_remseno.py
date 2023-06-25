@@ -64,7 +64,7 @@ class TestRemsenso(TestClass):
 
     def get_test_coords(self):
         c = Coords(drone_pine_coords, x_col='Y', y_col='X', label_col='class',
-                   id_col='id', sep=',', class1='RedCedar', class2='Pine')
+                   id_col='id', sep=',', class1='RedCedar', class2='Pine', crs="EPSG:4326")
         c.transform_coords(tree_coords="EPSG:4326", image_coords="EPSG:32614", plot=True)
         return c
 
@@ -101,7 +101,7 @@ class TestRemsenso(TestClass):
         df = c.df
         x = df[c.x_col].values[0]
         y = df[c.y_col].values[0]
-        bb = c.build_polygon_from_centre_point(x, y, 20, 20)
+        bb = c.build_polygon_from_centre_point(x, y, 2, 2, c.crs)
         print(bb)
         xs = [b[0] for b in bb]
         ys = [b[1] for b in bb]
@@ -221,14 +221,13 @@ class TestRemsenso(TestClass):
         c = self.get_test_coords()
         ax = c.plot_on_image(o)
         # Coords need to be transformed... then transformed back
-        c.transform_coords("EPSG:32614", "EPSG:4326", plot=False)
+        #c.transform_coords("EPSG:32614", "EPSG:4326", plot=False)
         df = c.df
 
         for i in range(0, len(df)):
             x = df[c.x_col].values[i]
             y = df[c.y_col].values[i]
-            bb = c.build_polygon_from_centre_point(x, y, 6, 2)
-            bb = [c.transform_coord(b[0], b[1], "EPSG:4326", "EPSG:32614") for b in bb]
+            bb = c.build_polygon_from_centre_point(x, y, 2, 2, "EPSG:32614")
             bb = [o.image.index(b[0], b[1]) for b in bb]
             xs = [b[1] for b in bb]
             ys = [b[0] for b in bb]

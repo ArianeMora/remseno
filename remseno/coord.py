@@ -37,17 +37,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from pyproj import Transformer
-
+import rasterio.warp
+from rasterio.crs import CRS
+import rasterio
 
 class Coords(Remsenso):
 
     def __init__(self, file_path: str, x_col: str, y_col: str,
-                 label_col: str, id_col: str, class1, class2, binary_label='binary_label', sep=','):
+                 label_col: str, id_col: str, class1, class2, crs,
+                 binary_label='binary_label', sep=','):
         super().__init__()
         self.df = None
         self.x_col, self.y_col, self.label_col, self.id_col, self.class1, self.class2, \
         self.sep = x_col, y_col, label_col, id_col, class1, class2, sep
         self.binary_label = binary_label
+        self.crs = crs # Coordinate reference system
         self.load(file_path)
 
     def load(self, file_path, plot=False):
@@ -175,7 +179,7 @@ class Coords(Remsenso):
 
         return circle_xys
 
-    def build_polygon_from_centre_point(self, lat: float, lon: float, width_m: float, height_m):
+    def build_polygon_from_centre_point(self, lat: float, lon: float, width_m: float, height_m: float, crs: str):
         """
         Build a polygon shape for using to download planet scope or other satelite data.
         :param lat:
@@ -184,6 +188,9 @@ class Coords(Remsenso):
         :param height_m:
         :return: polygon/square...
         """
+        # First convert to EPSG if not in the right one
+        if crs != 'EPSG:4326':
+            lat, lon = self.transform_coord(lat, lon, crs, 'EPSG:4326')
         # Get the width and offset each of the points
         w = width_m/2
         h = height_m/2
@@ -192,6 +199,12 @@ class Coords(Remsenso):
                 self.offset(lat, lon, w, -1 * h),  # Right
                 self.offset(lat, lon, w, h),  # Right corner
                 self.offset(lat, lon, -1 * w, h)]  # Start again
+        # Convert back
+        if crs != 'EPSG:4326':
+            # Project the feature to the desired CRS
+            coors = [self.transform_coord(b[0], b[1], 'EPSG:4326', crs) for b in poly]
+            return coors
+
         return poly
 
     def offset_latitude(self, lat: float, distance_x_m: float):
@@ -206,13 +219,15 @@ class Coords(Remsenso):
         R = 6378137
 
         # Coordinate offsets in radians
-        dLat = distance_x_m / R
-        return lat + dLat * 180 / np.pi
+        dLat = distance_x_m/111000 # distance_x_m / R
+        return lat + dLat #* 180 / np.pi
 
     def offset_longditude(self, lon: float, distance_y_m: float):
         """
         Offset longditude.
 
+        Thank you Hugo Palmer m8y
+        https://gis.stackexchange.com/questions/289111/how-to-add-meters-to-epsg4326-coordinates
         :param lon:
         :param distance_y_m:
         :return:
@@ -221,10 +236,10 @@ class Coords(Remsenso):
         R = 6378137
 
         # Coordinate offsets in radians
-        dLon = distance_y_m / (R * np.cos(np.pi * lon / 180))
+        dLon = distance_y_m / 80000  # (R * np.cos(np.pi * lon / 180))
 
         # OffsetPosition, decimal degrees
-        return lon + dLon * 180 / np.pi
+        return lon + dLon #* 180 / np.pi
 
     def offset(self, lat: float, lon: float, distance_x_m: float, distance_y_m: float):
         """

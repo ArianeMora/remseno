@@ -79,12 +79,17 @@ class OOD:
         for i, tid in enumerate(df[coords.id_col].values):
             y, x = image.image.index(xs[i], ys[i])
             # Now for each bounding area make a training point
-            bb = coords.build_polygon_from_centre_point(x, y, width_m, height_m)
+            bb = coords.build_polygon_from_centre_point(ys[i], xs[i], width_m, height_m)
+            bb = [image.image.index(x[0], x[1]) for x in bb]
             data_row = [tid, classes[i]]
             for image_band in bands:
                 # Here we are extracting the feature i.e. the value from the image bands we're interested in
-                data_row += list(image_band[bb[1]:bb[3], bb[0]:bb[2]])
-                self.num_pix = bb.shape
+                x0 = min([x[1] for x in bb])
+                x1 = max([x[1] for x in bb])
+                y0 = min([x[0] for x in bb])
+                y1 = max([x[0] for x in bb])
+                data_row += list(image_band[y1:y0, x1:x0])
+                self.num_pix = x0-x1
             rows.append(data_row)
         # Now create a dataframe from this
         train_df = pd.DataFrame(rows) #, columns=[coords.id_col, coords.binary_label, coords.x_col, coords.y_col] + band_labels)
