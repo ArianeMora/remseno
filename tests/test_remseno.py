@@ -244,7 +244,7 @@ class TestRemsenso(TestClass):
         image_ids = df['image_ids'].values
         lats = df['latitude'].values
         longs = df['longitude'].values
-        for i in range(10, 20):
+        for i in range(0, len(df)):
             aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 500, 500, "EPSG:4326")
             # For some reason need to swap it around classic no idea why...
             aoi = [[p[1], p[0]] for p in aoi]
