@@ -234,3 +234,11 @@ class TestRemsenso(TestClass):
             ax.plot(xs, ys)
         plt.title("Bounding box plot")
         plt.show()
+
+    def test_download(self):
+        df = pd.read_csv(f'../data/output/planetscope/download_DF_dedup.csv')
+        print(df.head())
+        df = df.head(3)
+        c = self.get_test_coords()
+        asyncio.run(c.download_planetscope('/Users/ariane/Documents/code/remseno/data/output/planetscope/images/', df,
+                               '', 'latitude', 'longitude', 'image_ids', distance_x_m=90, distance_y_m=90))

@@ -106,6 +106,8 @@ class OOD:
             train_df[col] = train_df[col].values/np.nanmean(train_df[col].values)
             train_df[col] = (train_df[col].values-np.nanmin(train_df[col].values))/(np.nanmax(train_df[col].values)-np.nanmin(train_df[col].values))
         train_df = train_df.fillna(0)
+        self.train_df = train_df
+        self.training_cols = train_df.columns[2:]
         return train_df, train_df.columns[2:]
 
     def train_ood(self, image, coords, bands, config=None, downsample=2, width_m=1, height_m=1, band_labels=None):
