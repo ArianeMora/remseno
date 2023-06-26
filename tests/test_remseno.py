@@ -237,8 +237,20 @@ class TestRemsenso(TestClass):
 
     def test_download(self):
         df = pd.read_csv(f'../data/output/planetscope/download_DF_dedup.csv')
-        print(df.head())
-        df = df.head(1)
+        #print(df.head())
+        #df = df.head(4)
         c = self.get_test_coords()
-        asyncio.run(c.download_planetscope('/Users/ariane/Documents/code/remseno/data/output/planetscope/images/', df,
-                               '', 'latitude', 'longitude', 'image_ids', distance_x_m=90, distance_y_m=90))
+        data = []
+        image_ids = df['image_ids'].values
+        lats = df['latitude'].values
+        longs = df['longitude'].values
+        for i in range(10, 20):
+            aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 500, 500, "EPSG:4326")
+            # For some reason need to swap it around classic no idea why...
+            aoi = [[p[1], p[0]] for p in aoi]
+            data.append([aoi, image_ids[i]])
+
+        asyncio.run(download(data))
+        # c = self.get_test_coords()
+        # asyncio.run(c.download_planetscope('/Users/ariane/Documents/code/remseno/data/output/planetscope/images/', df,
+        #                        '', 'latitude', 'longitude', 'image_ids', distance_x_m=90, distance_y_m=90))

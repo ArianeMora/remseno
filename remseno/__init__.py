@@ -30,3 +30,4 @@ from remseno.coord import *
 from remseno.image import *
 from remseno.ml import *
 from remseno.ood import *
+from remseno.downloader import *
