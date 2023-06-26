@@ -44,6 +44,9 @@ import rasterio.warp
 from rasterio.crs import CRS
 import rasterio
 
+os.environ['PL_API_KEY'] = 'PLAK5a21e86c2faf452195d43c3ca3f318ee'
+
+
 class Coords(Remsenso):
 
     def __init__(self, file_path: str, x_col: str, y_col: str,
@@ -205,9 +208,7 @@ class Coords(Remsenso):
         # Convert back
         if crs != 'EPSG:4326':
             # Project the feature to the desired CRS
-            coors = [self.transform_coord(b[0], b[1], 'EPSG:4326', crs) for b in poly]
-            return coors
-
+            poly = [self.transform_coord(b[0], b[1], 'EPSG:4326', crs) for b in poly]
         return poly
 
     def offset_latitude(self, lat: float, distance_x_m: float):
@@ -262,7 +263,6 @@ class Coords(Remsenso):
 
     async def download_planetscope(self, download_dir, df, planet_api_key: str, lat: str, lon: str, image_id: str,
                                    distance_x_m: float, distance_y_m: float):
-        os.environ['PL_API_KEY'] = 'PLAK5a21e86c2faf452195d43c3ca3f318ee'
         async with planet.Session() as sess:
             client = sess.client('orders')
             lats = df[lat].values
@@ -286,12 +286,14 @@ class Coords(Remsenso):
             :return:
             """
             aoi = self.build_polygon_from_centre_point(lat, lon, distance_x_m, distance_y_m, self.crs)
+            # For some reason need to swap it around classic no idea why...
+            aoi = [[p[1], p[0]] for p in aoi]
+
             dl_aoi = {
                 "type":
                     "Polygon",
                 "coordinates": [aoi]
             }
-
             dl_items = [image_id]
             dl_order = planet.order_request.build_request(
                 name='iowa_order',
