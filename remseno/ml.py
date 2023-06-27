@@ -18,19 +18,24 @@
 """
 Machine learning component of the project.
 """
+import math
+
 import pandas as pd
-import seaborn as sns
 from sklearn.model_selection import train_test_split
-from sklearn import preprocessing
 from sklearn import svm
-import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+from sklearn.metrics import balanced_accuracy_score
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class ML:
 
     def __init__(self):
         print('ML go brr')
+        self.train_samples = None
+        self.validation_df = None
+        self.train_df = None
 
     def kmeans(self, image, bands=None, k=5):
         """
@@ -48,11 +53,24 @@ class ML:
             dataset.append(image.get_band(band))
         # Convert to numpy array
 
-    def build_train_df(self, image, bands: list, coords, max_pixel_padding=2):
-        df = coords.df
-        # Build training dataset using the different channels in the tiff
-        train_df = pd.DataFrame()
-        classes =
+    def build_train_df(self, df, image, coords, bands, max_pixel_padding=2, band_labels=None):
+        """
+        Build a training dataframe from image and coordinate files!
+
+        :param image:
+        :param coords:
+        :param image_bands:
+        :param max_pixel_padding:
+        :param band_labels:
+        :return:
+        """
+        band_labels = band_labels if band_labels else [f'b{i}' for i in range(0, len(bands))]
+        xs = df[coords.x_col].values
+        ys = df[coords.y_col].values
+        rows = []
+        # Image bands is something like below, we leave it up to the user to define i.e. could be indicies
+        image_bands = [image.image.read(b) for b in bands]
+        classes = df[coords.binary_label].values
         for i, tid in enumerate(df[coords.id_col].values):
             y, x = image.image.index(xs[i], ys[i])
             # Now for each bounding area make a training point
@@ -60,166 +78,117 @@ class ML:
             for xy in bb:
                 # We now build the feature set which is
                 data_row = [tid, classes[i], xy[0], xy[1]]
-                for image_band in bands:
-                    try:
-                        # Here we are extracting the feature i.e. the value from the image bands we're interested in
-                        data_row.append(image_band[xy[0], xy[1]])
-                    except:
-                        print(tid, 'ERROR')
-                        data_row.append(0)
+                for image_band in image_bands:
+                    # Here we are extracting the feature i.e. the value from the image bands we're interested in
+                    data_row.append(image_band[xy[1], xy[0]])
                 rows.append(data_row)
-            # Now create a dataframe from this
-        train_df = pd.DataFrame(rows,
-                                columns=[coords.id_col, coords.binary_label, coords.x_col, coords.y_col] + band_labels)
+        # Now create a dataframe from this
+        train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.binary_label, coords.x_col, coords.y_col] + band_labels)
         return train_df, band_labels
 
-        return train_df
+    def train_ml(self, image, coords, bands, validation_percent=20, test_percent=20, max_pixel_padding=2):
+        """
+        Train a ML classifier for the image and coords.
 
-    def binary_classifier(self, image, coords, bands: list, valid_size=0.25):
-        df = coords.df
-        band1 = image.image.read(1)
+        :return: VAE or something
+        """
+        # Build training DF from the coords
+        # First we want to hold some trees out, so we select a random sample from the dataset
+        valid_df = coords.df.sample(math.ceil(len(coords.df)*(validation_percent/100)))
+        # Now use the other as the dataframe
+        df = coords.df[~coords.df[coords.id_col].isin(list(valid_df[coords.id_col].values))]
+        df, training_cols = self.build_train_df(df, image, coords, bands, max_pixel_padding=max_pixel_padding)
+        self.train_df = df
+        self.valid_df, training_cols = self.build_train_df(valid_df, image, coords, bands,
+                                                           max_pixel_padding=max_pixel_padding)
 
-        # Build training dataset using the different channels in the tiff
-        for pixel_padding in range(1, 10):
-            train_df = pd.DataFrame()  # df[[id_col, binary_label, label_col]].copy() # Make a copy of the cols we're interested in
+        X = df[training_cols].values
+        y = df[coords.binary_label]
+        # Train model
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_percent/100,
+                                                            random_state=18)
+        # Get the pixels from the orthomosaic
+        clf = svm.SVC(kernel='linear').fit(X_train, y_train)
+        clf.score(X_test, y_test)
+        test_score = clf.score(X_test, y_test)
+        y_pred = clf.predict(X_test)
+        print(test_score, y_pred)
+        # Then also do the final ones in the validation df i.e. unseen trees
+        X = self.valid_df[training_cols].values
+        y = self.valid_df[coords.binary_label]
+        print(clf.score(X, y))
+        print(balanced_accuracy_score(y, clf.predict(X)))
+        print(len(self.valid_df), len(self.train_df))
+        # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
+        # Solve for w3 (z)
+        z = lambda x, y: (-clf.intercept_[0] - clf.coef_[0][0] * x - clf.coef_[0][1] * y) / clf.coef_[0][2]
+        Y = y
+        tmp = np.linspace(0, 1, 30)
+        x, y = np.meshgrid(tmp, tmp)
 
-            for band in bands:
-                pixel_values = []
-                ids = []
-                labels = []
-                bin_labels = []
-                curr_band = image.image.read(band)
-                # Also do the x, y values
-                x_new = []
-                y_new = []
-                # Now for each tree we want to get the pixel values
-                y_vals = df[coords.y_col].values
-                id_vals, bin_vals, lbl_vals = df[coords.id_col].values, df[coords.binary_label].values, df[coords.label_col].values
-                for i, x in enumerate(df[coords.x_col].values):
-                    y, x = image.image.index(x, y_vals[i])
-                    for xj in range(-pixel_padding, pixel_padding):
-                        for yj in range(-pixel_padding, pixel_padding):
-                            pixel_tree = curr_band[y + yj, x + xj]  # Check the direction!!!
-                            pixel_values.append(pixel_tree)
-                            ids.append(id_vals[i])
-                            bin_labels.append(bin_vals[i])
-                            labels.append(lbl_vals[i])
-                            x_new.append(x + xj)
-                            y_new.append(y + yj)
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        #ax.plot_surface(x, y, z(x, y))
+        ax.plot3D(X[Y == 0, 0], X[Y == 0, 1], X[Y == 0, 2], 'ob')
+        ax.plot3D(X[Y == 1, 0], X[Y == 1, 1], X[Y == 1, 2], 'sr')
+        plt.show()
+        # Add the predicted label in for each
+        self.train_df['predicted_label'] = clf.predict(self.train_df[training_cols].values)
+        self.valid_df['predicted_label'] = clf.predict(self.valid_df[training_cols].values)
 
-                train_df[coords.id_col] = ids
-                train_df[coords.binary_label] = bin_labels
-                train_df[coords.label_col] = labels
-                train_df[f'band_{band}'] = pixel_values
-                train_df[f'x_new'] = x_new
-                train_df[f'y_new'] = y_new
+        return self.get_overall_tree_pred(df, coords, self.train_df, self.valid_df)
 
-            # Subsample the min number
-            sampled_df = pd.DataFrame()
-            num_samples = min(train_df[coords.binary_label].value_counts())
-            for x in set(train_df[coords.binary_label].values):
-                # Take a sample from the df and add it to the sampled DF
-                subsample = train_df[train_df[coords.binary_label] == x].sample(num_samples)
-                sampled_df = pd.concat([sampled_df, subsample], ignore_index=True)
+    def group_results(self, train_df, coords, correct, incorrect, id_value_map, data_type):
+        """
+        Group results.
 
-            # Train ML model
-            train_cols = [f'band_{band}' for band in bands]
-            # Make an even subsample
+        :param train_df:
+        :param coords:
+        :param correct:
+        :param incorrect:
+        :param id_value_map:
+        :return:
+        """
+        grped_df = train_df.groupby(coords.id_col)
+        for gid, g_df in grped_df:
+            # Get the most common colour
+            true_label = g_df[coords.binary_label].values[0]
+            # Now check what the average prediction was
+            pred_correct = len(g_df[g_df['predicted_label'] == true_label])
+            pred_incorrect = len(g_df[g_df['predicted_label'] != true_label])
+            # average prediction is going to just be the most common prediction
+            if pred_correct > pred_incorrect:
+                pred_value = true_label
+                correct += 1
+            else:
+                # Only works for the binary class problem
+                pred_value = 0 if true_label == 1 else 1
+                incorrect += 1
+            id_value_map[gid] = {'pred': pred_value, 'pred_prob': pred_correct / (pred_correct + pred_incorrect),
+                                 'type': data_type}
+        return id_value_map, correct, incorrect
 
-            X = sampled_df[train_cols].values
-            y = sampled_df[coords.binary_label].values
+    def get_overall_tree_pred(self, df, coords, train_df, valid_df):
+        """
+        :return:
+        """
+        # Do it for both the training and the validation dataframe
+        # Map the ID to the predicted label
+        id_value_map, correct, incorrect = {}, 0, 0
+        id_value_map, correct, incorrect = self.group_results(train_df, coords, correct, incorrect, id_value_map, 'train')
+        id_value_map, correct, incorrect = self.group_results(valid_df, coords, correct, incorrect, id_value_map, 'valid')
+        # Do the same for validation
+        total_prob = correct / (correct + incorrect)
+        print(total_prob)
+        preds = []
+        pred_probs = []
+        data_types = []
+        for tid in df[coords.id_col].values:
+            preds.append(id_value_map[tid]['pred'])
+            pred_probs.append(id_value_map[tid]['pred_prob'])
+            data_types.append(id_value_map[tid]['type'])
 
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=valid_size,
-                                                                random_state=0)
-            # Get the pixels from the orthomosaic
-            scaler = preprocessing.StandardScaler().fit(X_train)
-            clf = svm.SVC(C=8).fit(X_train, y_train)
-            clf.score(X_test, y_test)
-            test_score = clf.score(X_test, y_test)
-            y_pred = clf.predict(X_test)
-
-            # Do the visualisation of the prediction
-            from sklearn.metrics import ConfusionMatrixDisplay
-            from sklearn.metrics import confusion_matrix
-
-            fig, axs = plt.subplots(1, 3, figsize=(15, 4))
-
-            fig0 = axs[0]
-            fig1 = axs[1]
-            fig2 = axs[2]
-
-            # Make the 3 subplots
-            confmat = confusion_matrix(y_test, y_pred)
-            sns.heatmap(confmat, annot=True, ax=fig2, cmap='viridis')
-            fig2.set_title('Test acc.')
-
-            fig0.imshow(band1, cmap='pink')
-            fig0.set_title(f'True labels, test acc: {int(test_score * 100)}%', fontweight="bold")
-
-            ys = df[coords.y_col].values
-            # Do the prediction
-            df[f'colour'] = ['blue' if c == 0 else 'red' for c in df['binary_label'].values]
-            colours = df[f'colour'].values
-
-            for i, x in enumerate(df[coords.x_col].values):
-                try:
-                    y, x = image.image.index(x, ys[i])
-                    fig0.scatter(x, y, c=colours[i], s=10)
-                except:
-                    print(i, x)
-
-            train_df['predicted_label'] = clf.predict(
-                train_df[train_cols].values)  # Get the prediction capacity as the average of the pixels
-            grped_df = train_df.groupby(coords.id_col)
-
-            # Map the ID to the predicted label
-            id_value_map = {}
-            correct = 0
-            incorrect = 0
-            for gid, g_df in grped_df:
-                # Get the most common colour
-                true_label = g_df[coords.binary_label].values[0]
-                # Now check what the average prediction was
-                pred_correct = len(g_df[g_df['predicted_label'] == true_label])
-                pred_incorrect = len(g_df[g_df['predicted_label'] != true_label])
-                # average prediction is going to just be the most common prediction
-                pred_value = None
-                if pred_correct > pred_incorrect:
-                    pred_value = true_label
-                    correct += 1
-                else:
-                    # Only works for the binary class problem
-                    pred_value = 0 if true_label == 1 else 1
-                    incorrect += 1
-                id_value_map[gid] = {'pred': pred_value, 'pred_prob': pred_correct / (pred_correct + pred_incorrect)}
-
-            total_prob = correct / (correct + incorrect)
-            preds = []
-            pred_probs = []
-
-            for tid in df[coords.id_col].values:
-                preds.append(id_value_map[tid]['pred'])
-                pred_probs.append(id_value_map[tid]['pred_prob'])
-
-            df['pred'] = preds
-            df['pred_probs'] = pred_probs
-
-            fig1.imshow(band1, cmap='BuGn')
-            fig1.set_title(f'Predicted: {int(total_prob * 100)}%', fontweight="bold")
-
-            ys = df[coords.y_col].values
-
-            # Do the prediction
-            df[f'colour'] = ['blue' if c == 0 else 'red' for c in df['pred'].values]
-            colours = df[f'colour'].values
-
-            for i, x in enumerate(df[coords.x_col].values):
-                try:
-                    y, x = image.image.index(x, ys[i])
-                    fig1.scatter(x, y, c=colours[i], s=10)
-                except:
-                    print(i, x)
-
-            plt.title(f'Number of pixels bounding: {pixel_padding}', fontweight="bold")
-            plt.savefig(f'../img/image_{pixel_padding}.png', dpi=300)
-            plt.show()
+        df['pred'] = preds
+        df['pred_probs'] = pred_probs
+        df['data_type'] = data_types
+        return df

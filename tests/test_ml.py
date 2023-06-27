@@ -32,8 +32,8 @@ class TestML(TestRemsenso):
         c = self.get_test_coords()
         o1 = self.get_test_ortho()
         ml = ML()
-        train_df = ml.create_training_dataset(image_list=[o1], bands=[1, 2, 3], coords=c, max_pixel_padding=2)
-        print(train_df.head())
+        df = ml.train_ml(o1, bands=[1, 2, 3], coords=c, max_pixel_padding=2)
+        print(df)
 
     def test_train_df(self):
         o = self.get_test_ortho()
