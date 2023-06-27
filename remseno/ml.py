@@ -26,6 +26,7 @@ from sklearn import svm
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 
+
 class ML:
 
     def __init__(self):
@@ -47,45 +48,30 @@ class ML:
             dataset.append(image.get_band(band))
         # Convert to numpy array
 
-    def create_training_dataset(self, image_list: list, bands: list, coords, max_pixel_padding=2):
+    def build_train_df(self, image, bands: list, coords, max_pixel_padding=2):
         df = coords.df
         # Build training dataset using the different channels in the tiff
         train_df = pd.DataFrame()
-        for i, x in enumerate(df[coords.x_col].values):
-            for image_idx in range(0, len(image_list)):
-                for pixel_padding in range(1, max_pixel_padding):
-                    for band in bands:
-                        pixel_values = []
-                        ids = []
-                        labels = []
-                        bin_labels = []
-                        image = image_list[image_idx].ortho
-                        image_band = image.read(band)
-                        # Also do the x, y values
-                        x_new = []
-                        y_new = []
-                        # Now for each tree we want to get the pixel values
-                        y_vals = df[coords.y_col].values
-                        id_vals, bin_vals, lbl_vals = df[coords.id_col].values, df[coords.binary_label].values, df[
-                            coords.label_col].values
-
-                        y, x = image.index(x, y_vals[i])
-                        for xj in range(-pixel_padding, pixel_padding):
-                            for yj in range(-pixel_padding, pixel_padding):
-                                pixel_tree = image_band[y + yj, x + xj]  # Check the direction!!!
-                                pixel_values.append(pixel_tree)
-                                ids.append(id_vals[i])
-                                bin_labels.append(bin_vals[i])
-                                labels.append(lbl_vals[i])
-                                x_new.append(x + xj)
-                                y_new.append(y + yj)
-
-                    train_df[coords.id_col] = ids
-                    train_df[coords.binary_label] = bin_labels
-                    train_df[coords.label_col] = labels
-                    train_df[f'band_{band}_{image_idx}'] = pixel_values
-                    train_df[f'x_new'] = x_new
-                    train_df[f'y_new'] = y_new
+        classes =
+        for i, tid in enumerate(df[coords.id_col].values):
+            y, x = image.image.index(xs[i], ys[i])
+            # Now for each bounding area make a training point
+            bb = coords.build_circle_from_centre_point(x, y, max_pixel_padding)
+            for xy in bb:
+                # We now build the feature set which is
+                data_row = [tid, classes[i], xy[0], xy[1]]
+                for image_band in bands:
+                    try:
+                        # Here we are extracting the feature i.e. the value from the image bands we're interested in
+                        data_row.append(image_band[xy[0], xy[1]])
+                    except:
+                        print(tid, 'ERROR')
+                        data_row.append(0)
+                rows.append(data_row)
+            # Now create a dataframe from this
+        train_df = pd.DataFrame(rows,
+                                columns=[coords.id_col, coords.binary_label, coords.x_col, coords.y_col] + band_labels)
+        return train_df, band_labels
 
         return train_df
 
