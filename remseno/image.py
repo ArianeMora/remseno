@@ -50,7 +50,7 @@ class Image(Remsenso):
         super().__init__()
         self.image = None
         self.crs = None
-        
+
     def get_bands(self):
         """
         Get all the bands in an image
@@ -289,7 +289,7 @@ class Image(Remsenso):
         band1 = self.image.read(band)
         return self.plot_idx(band1, ax, show_plot, downsample)
 
-    def load_image(self, image_path=None, plot=False):
+    def load_image(self, image_path=None, plot=False, normalise=True):
         """
         https://rasterio.readthedocs.io/en/latest/quickstart.html
         :param image_path: Loads the ortho photo into memory
@@ -297,7 +297,6 @@ class Image(Remsenso):
         :return:
         """
         self.image = rasterio.open(image_path)
-
         if self._verbose:
             self.u.dp(['left edge coord:', self.image.bounds[0],
                       '\nbottom edge coord:', self.image.bounds[1],

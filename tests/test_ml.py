@@ -33,12 +33,4 @@ class TestML(TestRemsenso):
         o1 = self.get_test_ortho()
         ml = ML()
         df = ml.train_ml(o1, bands=[1, 2, 3], coords=c, max_pixel_padding=2)
-        print(df)
-
-    def test_train_df(self):
-        o = self.get_test_ortho()
-        c = self.get_test_coords()
-        ood = OOD(o, c)
-        tdf = ood.build_train_df(image=o, coords=c, bands=[o.get_band(b) for b in [1, 2, 3]],
-                                 downsample=3)
-        print(tdf)
+        df.to_csv('test_pred.csv')
