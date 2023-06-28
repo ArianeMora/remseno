@@ -40,9 +40,7 @@ import planet
 import matplotlib.pyplot as plt
 import pandas as pd
 from pyproj import Transformer
-import rasterio.warp
-from rasterio.crs import CRS
-import rasterio
+
 
 os.environ['PL_API_KEY'] = 'PLAK5a21e86c2faf452195d43c3ca3f318ee'
 
@@ -261,56 +259,3 @@ class Coords(Remsenso):
         # Earth’s radius, sphere
         return self.offset_latitude(lat, distance_x_m), self.offset_longditude(lon, distance_y_m)
 
-    async def download_planetscope(self, download_dir, df, planet_api_key: str, lat: str, lon: str, image_id: str,
-                                   distance_x_m: float, distance_y_m: float):
-        async with planet.Session() as sess:
-            client = sess.client('orders')
-            lats = df[lat].values
-            lons = df[lon].values
-            for i, img_id in enumerate(df[image_id].values):
-                requests = [self.create_requests(img_id, lats[i], lons[i], distance_x_m, distance_y_m)]
-
-            await asyncio.gather(*[
-                create_and_download(client, request, download_dir)
-                for request in requests
-            ])
-
-    def create_requests(self, image_id: str, lat: float, lon: float, distance_x_m: float, distance_y_m: float):
-            """
-            Downloads planet scope data
-            :param image_id: id of the image
-            :param lat:
-            :param lon:
-            :param distance_x_m:
-            :param distance_y_m:
-            :return:
-            """
-            aoi = self.build_polygon_from_centre_point(lat, lon, distance_x_m, distance_y_m, self.crs)
-            # For some reason need to swap it around classic no idea why...
-            aoi = [[p[1], p[0]] for p in aoi]
-
-            dl_aoi = {
-                "type":
-                    "Polygon",
-                "coordinates": [aoi]
-            }
-            dl_items = [image_id]
-            dl_order = planet.order_request.build_request(
-                name='iowa_order',
-                products=[
-                    planet.order_request.product(item_ids=dl_items,
-                                                 product_bundle='analytic_8b_sr_udm2',
-                                                 item_type='PSScene')
-                ],
-                tools=[planet.order_request.clip_tool(aoi=dl_aoi)])
-            return dl_order
-
-
-async def create_and_download(client, order_detail, directory):
-    """Make an order, wait for completion, download files as a single task."""
-    with planet.reporting.StateBar(state='creating') as reporter:
-        order = await client.create_order(order_detail)
-        reporter.update(state='created', order_id=order['id'])
-        await client.wait(order['id'], callback=reporter.update_state)
-
-    await client.download_order(order['id'], directory, progress_bar=True)

@@ -46,7 +46,7 @@ setup(name='remseno',
           ]
       },
       install_requires=['pandas', 'numpy', 'matplotlib>=3.3.3', 'scivae', 'sciutil', 'scikit-learn',
-                        'jupyterlab', 'rasterio', 'pandas', 'pyproj'],
+                        'jupyterlab', 'rasterio', 'pandas', 'pyproj', 'sciviso'],
       python_requires='>=3.10',
       data_files=[("", ["LICENSE"])]
       )

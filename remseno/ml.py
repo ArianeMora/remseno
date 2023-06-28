@@ -19,14 +19,15 @@
 Machine learning component of the project.
 """
 import math
+import os
+
 import rasterio
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn import svm
-from sklearn.cluster import KMeans
 from sklearn.metrics import balanced_accuracy_score
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
 
 
 class ML:
@@ -36,6 +37,12 @@ class ML:
         self.train_samples = None
         self.validation_df = None
         self.train_df = None
+        self.clf = None
+
+    def save(self, output_dir, label=''):
+        pickle.dumps(os.path.join(output_dir, f'classifier_{label}.pkl'))
+        self.train_df.to_csv(os.path.join(output_dir, f'trainDF_{label}.csv'), index=False)
+        self.validation_df.to_csv(os.path.join(output_dir, f'validDF_{label}.csv'), index=False)
 
     def build_train_df(self, df, image, coords, bands, max_pixel_padding=2,
                        band_labels=None, normalise=False):
@@ -78,7 +85,7 @@ class ML:
         train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.binary_label, coords.x_col, coords.y_col] + band_labels)
         return train_df, band_labels
 
-    def train_ml(self, image, coords, bands, validation_percent=20, test_percent=20,
+    def train_ml(self, clf, image, coords, bands, validation_percent=20, test_percent=20,
                  max_pixel_padding=2, normalise=False):
         """
         Train a ML classifier for the image and coords.
@@ -102,7 +109,7 @@ class ML:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_percent/100,
                                                             random_state=18)
         # Get the pixels from the orthomosaic
-        clf = svm.SVC(kernel='linear').fit(X_train, y_train)
+        clf = clf.fit(X_train, y_train)
         clf.score(X_test, y_test)
         test_score = clf.score(X_test, y_test)
         y_pred = clf.predict(X_test)
@@ -129,7 +136,7 @@ class ML:
         # Add the predicted label in for each
         self.train_df['predicted_label'] = clf.predict(self.train_df[training_cols].values)
         self.valid_df['predicted_label'] = clf.predict(self.valid_df[training_cols].values)
-
+        self.clf = clf # Save to the model
         return self.get_overall_tree_pred(coords.df, coords, self.train_df, self.valid_df)
 
     def group_results(self, train_df, coords, correct, incorrect, id_value_map, data_type):
