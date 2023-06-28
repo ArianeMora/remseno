@@ -237,8 +237,6 @@ class TestRemsenso(TestClass):
 
     def test_download(self):
         df = pd.read_csv(f'../data/output/planetscope/download_DF_dedup.csv')
-        #print(df.head())
-        #df = df.head(4)
         c = self.get_test_coords()
         data = []
         image_ids = df['image_ids'].values
@@ -251,6 +249,21 @@ class TestRemsenso(TestClass):
             data.append([aoi, image_ids[i]])
 
         asyncio.run(download(data))
-        # c = self.get_test_coords()
-        # asyncio.run(c.download_planetscope('/Users/ariane/Documents/code/remseno/data/output/planetscope/images/', df,
-        #                        '', 'latitude', 'longitude', 'image_ids', distance_x_m=90, distance_y_m=90))
+
+    def test_download_corsica(self):
+        df = pd.read_csv(f'../data/silver_fir/planet_scope_selected_image.csv')
+        c = Coords(f'../data/silver_fir/planet_scope_selected_image.csv', x_col='lon', y_col='lat', label_col='label',
+                   id_col='label', sep=',', class1='corsica', class2='levie', crs='EPSG:4326')
+        data = []
+        image_ids = df['image_ids'].values
+        lats = df['lat'].values
+        longs = df['lon'].values
+        for i in range(0, len(df)):
+            aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 1000, 1000, "EPSG:4326")
+            # For some reason need to swap it around classic no idea why...
+            aoi = [[p[1], p[0]] for p in aoi]
+            data.append([aoi, image_ids[i]])
+
+        asyncio.run(download(data))
+
+

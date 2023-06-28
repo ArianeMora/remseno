@@ -325,4 +325,43 @@ class Image(Remsenso):
         mask = index > index_cutoff
         return mask
 
+    def write_as_band(self, filename):
+        """
+        Write the RGB version out
+        :return:
+        """
+        nir = self.image.read(4)
+        red = self.image.read(3)
+        green = self.image.read(2)
 
+        # Normalize band DN
+        nir_norm = normalise(nir)
+        red_norm = normalise(red)
+        green_norm = normalise(green)
+
+        # Stack bands
+        nrg = np.dstack((nir_norm, red_norm, green_norm))
+
+        # # Write to TIFF
+        # kwargs = self.image.meta
+        # kwargs.update(
+        #     dtype=rasterio.float32,
+        #     count=1,
+        #     compress='lzw')
+        new_dataset = rasterio.open(
+            filename,
+            'w',
+            height=nir_norm.shape[0],
+            width=nir_norm.shape[1],
+            count=3,
+            dtype=rasterio.float32,
+            crs=self.image.crs,
+            transform=self.image.transform,
+        )
+
+        new_dataset.write(nir_norm, 1)
+        new_dataset.write(red_norm, 2)
+        new_dataset.write(green_norm, 3)
+        new_dataset.close()
+        # with rasterio.open(os.path.join(outpath, 'ndvi.tif'), 'w', **kwargs) as dst:
+        #     dst.write_band(1, nrg.astype(rasterio.float32))

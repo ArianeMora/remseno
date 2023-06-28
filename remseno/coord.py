@@ -77,6 +77,23 @@ class Coords(Remsenso):
             plt.xlabel(self.x_col)
             plt.ylabel(self.y_col)
             plt.show()
+            # If you notice that it looks wrong you might need to remove some data or points
+
+    def plot_on_ax(self, ax, image):
+        """
+        Plot the coords on an orthosomaic
+        :param ortho:
+        :return:
+        """
+        ys = self.df[self.y_col].values
+        self.df[f'colour'] = ['blue' if c == 0 else 'red' for c in self.df['binary_label'].values]
+        colours = self.df[f'colour'].values
+
+        for i, x in enumerate(self.df[self.x_col].values):
+            y, x = image.image.index(x, ys[i])
+            ax.scatter(x, y, c=colours[i])
+
+        return ax
 
         # If you notice that it looks wrong you might need to remove some data or points
     def plot_on_image(self, image, band=1):

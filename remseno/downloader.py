@@ -69,6 +69,7 @@ def create_requests(poly, image_id):
 
     return iowa_order
 
+
 async def create_and_download(client, order_detail, directory):
     """Make an order, wait for completion, download files as a single task."""
     with planet.reporting.StateBar(state='creating') as reporter:
@@ -89,4 +90,4 @@ async def download(data):
         await asyncio.gather(*[
             create_and_download(client, request, DOWNLOAD_DIR)
             for request in requests
-        ], return_exceptions=True)
+        ])
