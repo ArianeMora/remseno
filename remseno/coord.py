@@ -207,6 +207,7 @@ class Coords(Remsenso):
         :param long:
         :param width_m:
         :param height_m:
+        :param crs:
         :return: polygon/square...
         """
         # First convert to EPSG if not in the right one
@@ -238,8 +239,8 @@ class Coords(Remsenso):
         R = 6378137
 
         # Coordinate offsets in radians
-        dLat = distance_x_m/111000 # distance_x_m / R
-        return lat + dLat #* 180 / np.pi
+        dLat = distance_x_m/111000  # distance_x_m / R
+        return lat + dLat  #* 180 / np.pi
 
     def offset_longditude(self, lon: float, distance_y_m: float):
         """

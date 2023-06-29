@@ -19,13 +19,8 @@ from remseno.indices import *
 from tests.test_remseno import TestRemsenso
 from sklearn.tree import DecisionTreeClassifier
 
-class TestML(TestRemsenso):
 
-    def test_ml(self):
-        ml = ML()
-        o = self.get_test_ortho()
-        c = self.get_test_coords()
-        ml.binary_classifier(image=o, coords=c, bands=[1, 2, 3])
+class TestML(TestRemsenso):
 
     def test_training_ml(self):
         # Make a list of training datasets

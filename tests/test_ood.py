@@ -97,12 +97,12 @@ class TestOOD(TestRemsenso):
         # Now check prediction using waeldi ood
         drone_pine_coords = '../data/dryad_trees/location_files/ood.csv'
         oo_c = Coords(drone_pine_coords, x_col='Y', y_col='X', label_col='class',
-                   id_col='id', sep=',', class1='OOD', class2='OOD')
+                      id_col='id', sep=',', class1='OOD', class2='OOD', crs="EPSG:4326")
         oo_c.transform_coords(tree_coords="EPSG:4326", image_coords="EPSG:32614", plot=True)
         # Build train df --> needs to be as above
         labels = [f'b{i}' for i in [1, 2, 3]]
-        df, labels = ood.build_train_df(o, oo_c, bands=[o.get_band(b) for b in img_bands], max_pixel_padding=1,
-                                        band_labels=labels)
+        df, labels = ood.build_train_df(o, oo_c, bands=[o.get_band(b) for b in img_bands], width_m=1, height_m=1,
+                                        downsample=2, band_labels=labels)
 
         df['pred'], pred = ood.classify_ood(df[labels].values)
         print(df)
@@ -110,7 +110,7 @@ class TestOOD(TestRemsenso):
         plt.show()
         print(len(df[df['pred'] == True]))
         df, labels = ood.build_train_df(o, c, bands=[o.get_band(b) for b in img_bands],
-                                        max_pixel_padding=1, band_labels=labels)
+                                        width_m=1, height_m=1, downsample=2, band_labels=labels)
         df['pred'], pred = ood.classify_ood(df[labels].values)
         print(df)
         plt.hist(pred[:, 0])
@@ -135,21 +135,19 @@ class TestOOD(TestRemsenso):
         o = Image()
         o.load_image(image_path='../data/public_data/waldi_july.tif')
         c = Coords('../data/public_data/Waeldi_Adults_genotyped.csv', x_col='X', y_col='Y', label_col='Taxa',
-                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis')
-        c.transform_coords(tree_coords="EPSG:21781", image_coords="EPSG:4326", plot=False) #EPSG: 4326
+                   id_col='ProbeIDoriginal', sep=',', class1='Sylvatica', class2='Orientalis', crs="EPSG:4326")
+        c.transform_coords(tree_coords="EPSG:21781", image_coords="EPSG:4326", plot=False)
 
         oo_c = Coords('data/ood_waeldi.csv', x_col='Y', y_col='X', label_col='class',
-                   id_col='id', sep=',', class1=0, class2=0)
+                   id_col='id', sep=',', class1=0, class2=0, crs="EPSG:4326")
         ood = OOD(o, c)
         ood.load_saved_vae()
-        #
-        # dist = ood.train_ood(image=o, coords=c, bands=[o.get_band(b) for b in [1, 2, 3, 4, 5, 6, 7, 8]],
-        #                      max_pixel_padding=3)
+
         plt.show()
         bands = [1, 2, 3, 4, 5, 6, 7, 8]
         labels = [f'b{i}' for i in bands]
-        df, labels = ood.build_train_df(o, oo_c, bands=[o.get_band(b) for b in bands],
-                                 max_pixel_padding=1, band_labels=labels)
+        df, labels = ood.build_train_df(o, oo_c, bands=[o.get_band(b) for b in bands], width_m=1, height_m=1,
+                                        downsample=20, band_labels=labels)
 
         df['pred'], pred = ood.classify_ood(df[labels].values)
         print(df)
@@ -157,7 +155,7 @@ class TestOOD(TestRemsenso):
         plt.show()
         print(len(df[df['pred'] == True]))
         df, labels = ood.build_train_df(o, c, bands=[o.get_band(b) for b in bands],
-                                        max_pixel_padding=1, band_labels=labels)
+                                        width_m=1, height_m=1, downsample=20,  band_labels=labels)
         df['pred'], pred = ood.classify_ood(df[labels].values)
         print(df)
         plt.hist(pred[:, 0])
