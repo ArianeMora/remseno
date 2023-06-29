@@ -15,15 +15,9 @@
 #                                                                             #
 ###############################################################################
 
-import os
 import shutil
 import tempfile
 import unittest
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-from remseno import *
 from remseno.indices import *
 
 
@@ -52,12 +46,8 @@ class TestClass(unittest.TestCase):
 drone_dir = '../data/dryad_trees/'
 drone_ortho = '../data/dryad_trees/Stitch_Image/20190518_pasture_100ft_RGB_GCPs_Forest.tif'
 drone_coords = '../data/dryad_trees/location_files/Annotations.csv'
-drone_pine_coords = '../data/dryad_trees/location_files/Annotations.csv' #'../data/dryad_trees/dryad_cedar_pine/pine_class.csv'
-
-
-# df = pd.read_csv(drone_pine_coords)
-# df['class'] = ['class1' if i % 2 == 0 else 'class2' for i in range(0, len(df))]
-# df.to_csv('../data/dryad_trees/dryad_cedar_pine/pine_class.csv', index=False)
+drone_pine_coords = '../data/dryad_trees/location_files/Annotations.csv'
+download_scenes = False  # i.e. so you don't always go downloading and wasting your planetscope data
 
 
 class TestRemsenso(TestClass):
@@ -113,7 +103,7 @@ class TestRemsenso(TestClass):
 
     def test_multi_band(self):
         o = self.get_test_ortho()
-        o.plot_multi_bands([1, 2, 3])
+        o.plot_multi_bands([1, 2, 3], downsample=20)
         plt.show()
 
     def test_multi_band_subset(self):
@@ -127,17 +117,25 @@ class TestRemsenso(TestClass):
         bb = c.build_circle_from_centre_point(x, y, 3)
         xs = []
         ys = []
-        ax = o.plot_multi_bands([1, 2, 3])
+        pixel_buffer = 20
+
         for b in bb:
             xs.append(b[0])
             ys.append(b[1])
-            ax.scatter(b[0], b[1], s=3)
+        roi = {'x1': min(xs) - pixel_buffer, 'x2': max(xs) + pixel_buffer,
+               'y1': min(ys) - pixel_buffer, 'y2': max(ys) + pixel_buffer}
+        ax = o.plot_multi_bands([1, 2, 3], ax=ax, roi=roi)
+        # Ya have to shift it to make it land on the image
+        move_x = min(xs) - pixel_buffer
+        move_y = min(ys) - pixel_buffer
+        xs_scatter = []
+        ys_scatter = []
+        for b in bb:
+            xs_scatter.append(b[0] - move_x)
+            ys_scatter.append(b[1] - move_y)
+        ax.scatter(xs_scatter, ys_scatter, s=3)
         plt.title("Bounding box circle")
-
         # Add this to get sub-image
-        pixel_buffer = 20
-        plt.xlim([min(xs) - pixel_buffer, max(xs) + pixel_buffer])
-        plt.ylim([min(ys) - pixel_buffer, max(ys) + pixel_buffer])
         plt.show()
 
     def test_plot_circle(self):
@@ -149,7 +147,7 @@ class TestRemsenso(TestClass):
         x = df[c.x_col].values[0]
         y = df[c.y_col].values[0]
         y, x = o.image.index(x, y)
-        bb = c.build_circle_from_centre_point(x, y, 100)
+        bb = c.build_circle_from_centre_point(x, y, 5)
         xs = []
         ys = []
         for b in bb:
@@ -236,34 +234,36 @@ class TestRemsenso(TestClass):
         plt.show()
 
     def test_download(self):
-        df = pd.read_csv('../data/tallo/planetscope/planetscope_test.csv')
-        c = self.get_test_coords()
-        data = []
-        image_ids = df['image_ids'].values
-        lats = df['latitude'].values
-        longs = df['longitude'].values
-        for i in range(0, len(df)):
-            aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 500, 500, "EPSG:4326")
-            # For some reason need to swap it around classic no idea why...
-            aoi = [[p[1], p[0]] for p in aoi]
-            data.append([aoi, image_ids[i]])
+        if download_scenes:
+            df = pd.read_csv('../data/tallo/planetscope/planetscope_test.csv')
+            c = self.get_test_coords()
+            data = []
+            image_ids = df['image_ids'].values
+            lats = df['latitude'].values
+            longs = df['longitude'].values
+            for i in range(0, len(df)):
+                aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 500, 500, "EPSG:4326")
+                # For some reason need to swap it around classic no idea why...
+                aoi = [[p[1], p[0]] for p in aoi]
+                data.append([aoi, image_ids[i]])
 
-        asyncio.run(download(data))
+            asyncio.run(download(data))
 
     def test_download_corsica(self):
-        df = pd.read_csv(f'../data/silver_fir/planet_scope_selected_image.csv')
-        c = Coords(f'../data/silver_fir/planet_scope_selected_image.csv', x_col='lon', y_col='lat', label_col='label',
-                   id_col='label', sep=',', class1='corsica', class2='levie', crs='EPSG:4326')
-        data = []
-        image_ids = df['image_ids'].values
-        lats = df['lat'].values
-        longs = df['lon'].values
-        for i in range(0, len(df)):
-            aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 1000, 1000, "EPSG:4326")
-            # For some reason need to swap it around classic no idea why...
-            aoi = [[p[1], p[0]] for p in aoi]
-            data.append([aoi, image_ids[i]])
+        if download_scenes:
+            df = pd.read_csv(f'../data/silver_fir/planet_scope_selected_image.csv')
+            c = Coords(f'../data/silver_fir/planet_scope_selected_image.csv', x_col='lon', y_col='lat', label_col='label',
+                       id_col='label', sep=',', class1='corsica', class2='levie', crs='EPSG:4326')
+            data = []
+            image_ids = df['image_ids'].values
+            lats = df['lat'].values
+            longs = df['lon'].values
+            for i in range(0, len(df)):
+                aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 1000, 1000, "EPSG:4326")
+                # For some reason need to swap it around classic no idea why...
+                aoi = [[p[1], p[0]] for p in aoi]
+                data.append([aoi, image_ids[i]])
 
-        asyncio.run(download(data))
+            asyncio.run(download(data))
 
 

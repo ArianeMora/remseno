@@ -151,7 +151,7 @@ class Image(Remsenso):
 
         self.u.warn_p(['You will need to copy and paste that command into your terminal now!'])
 
-    def plot_idx(self, band, ax=None, show_plot=False, downsample=None, cmap='pink'):
+    def plot_idx(self, band, ax=None, show_plot=False, downsample=None, cmap='pink', roi= None):
         """
         Plot specific bands or calculated index (as below but just uses the band already calcualted)
 
@@ -163,6 +163,8 @@ class Image(Remsenso):
         # Plot the first band
         if ax is None:
             fig, ax = plt.subplots()
+        if roi:
+            band = band[roi['y1']: roi['y2'], roi['x1']: roi['x2']]
         if downsample:
             band = band[::downsample, ::downsample]
         ax.imshow(band, cmap=cmap)
@@ -171,7 +173,7 @@ class Image(Remsenso):
             plt.show()
         return ax
 
-    def plot_multi_bands(self, bands: list, title='', ax=None, show_plot=False, downsample=None):
+    def plot_multi_bands(self, bands: list, title='', ax=None, show_plot=False, downsample=None, roi=None):
         """
         Plots multiple
         :param bands: a list of bands to plot
@@ -185,6 +187,8 @@ class Image(Remsenso):
         img_bands = []
         for b in bands:
             ds = self.image.read(b)
+            if roi:
+                ds = ds[roi['y1']:roi['y2'], roi['x1']:roi['x2']]
             if downsample:
                 ds = ds[::downsample, ::downsample]
             img_bands.append(normalise(ds))
