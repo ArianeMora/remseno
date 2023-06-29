@@ -51,12 +51,12 @@ class TestSat(TestRemsenso):
 
     def test_plot(self):
         o = self.get_test_ortho()
-        o.plot_nir()
+        o.plot_rbg()
         plt.show()
 
     def test_mask(self):
         o = self.get_test_ortho()
-        ax = o.plot_nir()
+        ax = o.plot_rbg()
         ndvi = get_ndvi(image=o.image, red_band=6, nir_band=8)
         mask = o.mask_on_index(ndvi, 0.5)
         plt.imshow(mask*ndvi)
@@ -64,4 +64,4 @@ class TestSat(TestRemsenso):
 
     def test_write_band(self):
         o = self.get_test_ortho()
-        o.write_as_band('output.tif')
+        o.write_as_rbg('output.tif')

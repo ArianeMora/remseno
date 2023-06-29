@@ -236,7 +236,7 @@ class TestRemsenso(TestClass):
         plt.show()
 
     def test_download(self):
-        df = pd.read_csv(f'../data/output/planetscope/download_DF_dedup.csv')
+        df = pd.read_csv('../data/tallo/planetscope/planetscope_test.csv')
         c = self.get_test_coords()
         data = []
         image_ids = df['image_ids'].values

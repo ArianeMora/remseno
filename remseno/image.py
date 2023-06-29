@@ -46,10 +46,11 @@ def normalise(array):
 
 class Image(Remsenso):
 
-    def __init__(self):
+    def __init__(self, name=''):
         super().__init__()
         self.image = None
         self.crs = None
+        self.name = name
 
     def get_bands(self):
         """
@@ -71,23 +72,6 @@ class Image(Remsenso):
             return (x1[0] - x0[0])*100, (x1[1] - x0[1])*100, crs.linear_units_factor
         else:
             return (x1[0] - x0[0])*100, (x1[1] - x0[1]), crs.linear_units_factor
-
-    def get_sr(self, nir_band: int, red_band: int):
-        """
-        Gets the Simple ratio values for this: Nir/red
-        The green foliage status of a canopy
-        Rouse, J. W., Haas, R. H.,Schell, J. A.and Deering, D. W.(1973).Monitoring
-        vegetation systems in the Great Plains with ERTS. Third ERTS Symposium, NASA SP-351 I, pp. 309–317.
-
-        :param nir_band: Near Infrared Band
-        :param red_band: Red band
-        :return: sr
-        """
-        # Get the bands from the image
-        nir = self.image.read(nir_band)
-        red_band = self.image.read(red_band)
-        sr = nir/red_band
-        return sr
 
     def get_band(self, band_index=int):
         """
@@ -167,7 +151,7 @@ class Image(Remsenso):
 
         self.u.warn_p(['You will need to copy and paste that command into your terminal now!'])
 
-    def plot_idx(self, band, ax=None, show_plot=False, downsample=None):
+    def plot_idx(self, band, ax=None, show_plot=False, downsample=None, cmap='pink'):
         """
         Plot specific bands or calculated index (as below but just uses the band already calcualted)
 
@@ -181,7 +165,7 @@ class Image(Remsenso):
             fig, ax = plt.subplots()
         if downsample:
             band = band[::downsample, ::downsample]
-        ax.imshow(band, cmap='pink')
+        ax.imshow(band, cmap=cmap)
         ax.set_title(f'{self.name}')
         if show_plot:
             plt.show()
@@ -215,7 +199,7 @@ class Image(Remsenso):
             plt.show()
         return ax
 
-    def plot_nir(self, ax=None, show_plot=False):
+    def plot_rbg(self, ax=None, show_plot=False, r=3, b=4, g=2):
         """
         Thank you aaron you're a G whoever you are!
         https://gis.stackexchange.com/questions/306164/how-to-visualize-multiband-imagery-using-rasterio
@@ -225,17 +209,17 @@ class Image(Remsenso):
         if ax is None:
             fig, ax = plt.subplots()
         # Convert to numpy arrays
-        nir = self.image.read(4)
-        red = self.image.read(3)
-        green = self.image.read(2)
+        blue = self.image.read(b)
+        red = self.image.read(r)
+        green = self.image.read(g)
 
         # Normalize band DN
-        nir_norm = normalise(nir)
+        blue_norm = normalise(blue)
         red_norm = normalise(red)
         green_norm = normalise(green)
 
         # Stack bands
-        nrg = np.dstack((nir_norm, red_norm, green_norm))
+        nrg = np.dstack((blue_norm, red_norm, green_norm))
 
         # View the color composite
         ax.imshow(nrg)
@@ -289,7 +273,7 @@ class Image(Remsenso):
         band1 = self.image.read(band)
         return self.plot_idx(band1, ax, show_plot, downsample)
 
-    def load_image(self, image_path=None, plot=False, normalise=True):
+    def load_image(self, image_path=None, plot=False, normalise_bands=False):
         """
         https://rasterio.readthedocs.io/en/latest/quickstart.html
         :param image_path: Loads the ortho photo into memory
@@ -308,6 +292,26 @@ class Image(Remsenso):
                        '\ngeo ref system:', self.image.crs,
                        '\ndata transform\n', self.image.transform
                        ])
+        if normalise_bands:
+            # Normalize band DN
+            # # Write to TIFF
+            new_dataset = rasterio.open(
+                f'{image_path.replace(".tif", "_normalised.tif")}',
+                'w',
+                height=self.image.height,
+                width=self.image.width,
+                count=self.image.indexes,
+                dtype=rasterio.float32,
+                crs=self.image.crs,
+                transform=self.image.transform,
+            )
+            # Normalise all the bands
+            for band in range(1, self.image.indexes):
+                new_dataset.write(normalise(self.image.read(band)), band)
+            new_dataset.close()
+            # Let the user know it has been written to a new file
+            self.u.dp(['Wrote normalised tif to new file: ', f'{image_path.replace(".tif", "_normalised.tif")}'])
+            self.image = rasterio.open(f'{image_path.replace(".tif", "_normalised.tif")}')
 
         if plot:
             self.plot(1)
@@ -325,29 +329,26 @@ class Image(Remsenso):
         mask = index > index_cutoff
         return mask
 
-    def write_as_band(self, filename):
+    def write_as_rbg(self, filename: str, r=3, b=4, g=2):
         """
-        Write the RGB version out
+        Write the RGB version out to a tif file from a hyperspectral tif.
+        The defaults correspond to bands from the planetscope data.
+
+        :param r: Red band
+        :param b: blue band
+        :param g: green band
         :return:
         """
-        nir = self.image.read(4)
-        red = self.image.read(3)
-        green = self.image.read(2)
+        blue = self.image.read(b)
+        red = self.image.read(r)
+        green = self.image.read(g)
 
         # Normalize band DN
-        nir_norm = normalise(nir)
+        nir_norm = normalise(blue)
         red_norm = normalise(red)
         green_norm = normalise(green)
 
-        # Stack bands
-        nrg = np.dstack((nir_norm, red_norm, green_norm))
-
         # # Write to TIFF
-        # kwargs = self.image.meta
-        # kwargs.update(
-        #     dtype=rasterio.float32,
-        #     count=1,
-        #     compress='lzw')
         new_dataset = rasterio.open(
             filename,
             'w',
@@ -363,5 +364,3 @@ class Image(Remsenso):
         new_dataset.write(red_norm, 2)
         new_dataset.write(green_norm, 3)
         new_dataset.close()
-        # with rasterio.open(os.path.join(outpath, 'ndvi.tif'), 'w', **kwargs) as dst:
-        #     dst.write_band(1, nrg.astype(rasterio.float32))
