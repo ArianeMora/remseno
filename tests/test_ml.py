@@ -17,7 +17,7 @@
 
 from remseno.indices import *
 from tests.test_remseno import TestRemsenso
-
+from sklearn.tree import DecisionTreeClassifier
 
 class TestML(TestRemsenso):
 
@@ -32,5 +32,24 @@ class TestML(TestRemsenso):
         c = self.get_test_coords()
         o1 = self.get_test_ortho()
         ml = ML()
-        df = ml.train_ml(o1, bands=[1, 2, 3], coords=c, max_pixel_padding=2)
+        # Make a classifier any from sklearn
+        clf = svm.SVC(C=8.0, kernel='poly', class_weight='balanced')
+
+        df = ml.train_ml(clf, image=o1, coords=c, bands=[1, 2, 3], validation_percent=20, test_percent=20,
+                 max_pixel_padding=2, normalise=False)
         df.to_csv('test_pred.csv')
+
+    def test_different_training_ml(self):
+        # Make a list of training datasets
+        c = self.get_test_coords()
+        o1 = self.get_test_ortho()
+        ml = ML()
+        # Make a classifier any from sklearn
+        clf = DecisionTreeClassifier(random_state=0)
+
+        df = ml.train_ml(clf, image=o1, coords=c, bands=[1, 2, 3], validation_percent=20, test_percent=20,
+                         max_pixel_padding=2, normalise=False)
+        df.to_csv('test_pred.csv')
+
+
+

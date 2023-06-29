@@ -58,7 +58,7 @@ class TestSat(TestRemsenso):
         o = self.get_test_ortho()
         ax = o.plot_rbg()
         ndvi = get_ndvi(image=o.image, red_band=6, nir_band=8)
-        mask = o.mask_on_index(ndvi, 0.5)
+        mask = o.mask_on_index(ndvi, 0.75)
         plt.imshow(mask*ndvi)
         plt.show()
 

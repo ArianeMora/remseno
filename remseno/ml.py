@@ -24,11 +24,12 @@ import os
 import rasterio
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn import svm
+from sklearn.cluster import KMeans
 from sklearn.metrics import balanced_accuracy_score
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
-
 
 class ML:
 

@@ -117,7 +117,7 @@ class TestRemsenso(TestClass):
         bb = c.build_circle_from_centre_point(x, y, 3)
         xs = []
         ys = []
-        pixel_buffer = 20
+        pixel_buffer = 3
 
         for b in bb:
             xs.append(b[0])
@@ -168,14 +168,14 @@ class TestRemsenso(TestClass):
         x = df[c.x_col].values[0]
         y = df[c.y_col].values[0]
         y, x = o.image.index(x, y)
-        bb = c.build_circle_from_centre_point(x, y, 20)
+        bb = c.build_circle_from_centre_point(x, y, 3)
         xs = []
         ys = []
         for b in bb:
             xs.append(b[0])
             ys.append(b[1])
         plt.title("Bounding box circle")
-        pixel_buffer = 1000
+        pixel_buffer = 5
         roi = {'x1': min(xs) - pixel_buffer, 'x2': max(xs) + pixel_buffer,
                'y1': min(ys) - pixel_buffer, 'y2': max(ys) + pixel_buffer}
         ax = o.plot_subset(roi, [1, 2, 3], show_plot=False)

@@ -232,6 +232,26 @@ class Image(Remsenso):
             plt.show()
         return ax
 
+    def check_roi(self, roi):
+        """
+        Check that the ROI is within the bounds of the image otherwise make within bounds...
+                    self.u.dp(['left edge coord:', self.image.bounds[0],
+                      '\nbottom edge coord:', self.image.bounds[1],
+                       '\nright edge coord:', self.image.bounds[2],
+                       '\ntop edge coord:', self.image.bounds[3],
+        :param roi:
+        :return:
+        """
+        roi_n = {}
+        roi_n['y1'] = roi['y1'] if roi['y1'] > self.image.bounds[1] else self.image.bounds[1]
+        roi_n['y2'] = roi['y2'] if roi['y2'] < self.image.bounds[3] else self.image.bounds[3]
+        roi_n['x1'] = roi['x1'] if roi['x1'] > self.image.bounds[0] else self.image.bounds[0]
+        roi_n['x2'] = roi['x2'] if roi['x2'] < self.image.bounds[2] else self.image.bounds[2]
+        for k, v in roi_n:
+            if roi_n[k] != roi[k]:
+                self.u.dp(['ROI was out of bounds, updated to be size of box...', k, roi_n[k], roi[k]])
+        return roi_n
+
     def plot_subset(self, roi: dict, bands: list, ax=None, title='', show_plot=True):
         """
         Save a subset of an image based on a region of interest and the bands
@@ -251,6 +271,7 @@ class Image(Remsenso):
         # Convert to numpy arrays
         img_bands = []
         for b in bands:
+            roi = self.check_roi(roi)
             ds = self.image.read(b)[roi['y1']:roi['y2'], roi['x1']:roi['x2']]  # Now filter if the pixels are in the ROI
             img_bands.append(normalise(ds))
 
