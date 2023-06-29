@@ -5,7 +5,7 @@ A package for predicting tree species using remote sensing data (either drone or
 # install
 
 ```
-pip install remseno-0.0.1.tar.gz
+pip install dist/remseno-0.0.1.tar.gz
 ```
 
 # quick start
