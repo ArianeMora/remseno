@@ -5,7 +5,7 @@ A package for predicting tree species using remote sensing data (either drone or
 # install
 
 ```
-pip install dist/remseno.
+pip install remseno-0.0.1.tar.gz
 ```
 
 # quick start
@@ -16,8 +16,8 @@ You need: a coordinate file (which has the tree ID, tree label (i.e. class), X, 
 ### load in coordinate file
 ```python
 from remseno import *
-coordinate_file_path = f'./data/dryad_trees/QGIS/Annotations.csv' 
-c = Coords(coordinate_file_path, x_col='X', y_col='Y', label_col='class',
+coordinate_file_path = f'../data/dryad_trees/QGIS/Annotations.csv' 
+c = Coords(coordinate_file_path, x_col='Y', y_col='X', label_col='class',
                    id_col='id', sep=',', class1='RedCedar', class2='Pine', crs="EPSG:4326")
 
 ```
@@ -109,6 +109,8 @@ o.plot_multi_bands(bands=[1, 2, 3], downsample=10, show_plot=True)
 ```
 4. Plot indicies
 ```python
+from remseno.indices import *
+
 ndvi = get_ndvi(image=o.image, red_band=6, nir_band=8)
 o.plot_idx(ndvi)
 plt.show()
