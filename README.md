@@ -7,6 +7,11 @@ A package for predicting tree species using remote sensing data (either drone or
 ```
 pip install dist/remseno-0.0.1.tar.gz
 ```
+You will also need to install the planet scope API, we recommend going to `https://github.com/planetlabs/planet-client-python`
+ and following the steps, otherwise you can use the prebuilt version we downloaded to run this:
+```
+pip install other_software/planet-client-python-2.0.3.tar.gz
+```
 
 # quick start
 You need: a coordinate file (which has the tree ID, tree label (i.e. class), X, and Y coordinates, and the coordinate reference system).

@@ -250,6 +250,7 @@ class TestRemsenso(TestClass):
             asyncio.run(download(data))
 
     def test_download_corsica(self):
+        download_scenes = True
         if download_scenes:
             df = pd.read_csv(f'../data/silver_fir/planet_scope_selected_image.csv')
             c = Coords(f'../data/silver_fir/planet_scope_selected_image.csv', x_col='lon', y_col='lat', label_col='label',

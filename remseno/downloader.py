@@ -34,10 +34,9 @@ import requests
 
 from planet import Session
 
-os.environ['PL_API_KEY'] = 'PLAK5a21e86c2faf452195d43c3ca3f318ee'
+os.environ['PL_API_KEY'] = '86d667757ba14bc38dd4555d8ab948d5'
 import asyncio
 import os
-
 import planet
 
 DOWNLOAD_DIR = os.getenv('TEST_DOWNLOAD_DIR', '.')
