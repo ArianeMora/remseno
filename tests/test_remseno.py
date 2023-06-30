@@ -259,8 +259,8 @@ class TestRemsenso(TestClass):
             image_ids = df['image_ids'].values
             lats = df['lat'].values
             longs = df['lon'].values
-            for i in range(0, len(df)):
-                aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 1000, 1000, "EPSG:4326")
+            for i, v in enumerate(df.values):
+                aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 5000, 5000, "EPSG:4326")
                 # For some reason need to swap it around classic no idea why...
                 aoi = [[p[1], p[0]] for p in aoi]
                 data.append([aoi, image_ids[i]])
