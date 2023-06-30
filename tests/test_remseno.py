@@ -251,20 +251,30 @@ class TestRemsenso(TestClass):
 
     def test_download_corsica(self):
         download_scenes = True
-        if download_scenes:
-            df = pd.read_csv(f'../data/silver_fir/planet_scope_selected_image.csv')
-            c = Coords(f'../data/silver_fir/planet_scope_selected_image.csv', x_col='lon', y_col='lat', label_col='label',
-                       id_col='label', sep=',', class1='corsica', class2='levie', crs='EPSG:4326')
-            data = []
-            image_ids = df['image_ids'].values
-            lats = df['lat'].values
-            longs = df['lon'].values
-            for i, v in enumerate(df.values):
-                aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 5000, 5000, "EPSG:4326")
-                # For some reason need to swap it around classic no idea why...
-                aoi = [[p[1], p[0]] for p in aoi]
-                data.append([aoi, image_ids[i]])
+        data_dir = '../data/silver_fir/'
+        files = [f'{data_dir}Autumn_planet_scope_selected_image.csv',
+                 f'{data_dir}Spring_planet_scope_selected_image.csv',
+                 f'{data_dir}Summer_planet_scope_selected_image.csv',
+                 f'{data_dir}Winter_planet_scope_selected_image.csv',
+                 ]
+        for filename in files:
+            if download_scenes:
+                try:
+                    df = pd.read_csv(filename)
+                    c = Coords(filename, x_col='lon', y_col='lat', label_col='label',
+                               id_col='label', sep=',', class1='corsica', class2='levie', crs='EPSG:4326')
+                    data = []
+                    image_ids = df['image_ids'].values
+                    lats = df['lat'].values
+                    longs = df['lon'].values
+                    for i, v in enumerate(df.values):
+                        aoi = c.build_polygon_from_centre_point(lats[i], longs[i], 5000, 5000, "EPSG:4326")
+                        # For some reason need to swap it around classic no idea why...
+                        aoi = [[p[1], p[0]] for p in aoi]
+                        data.append([aoi, image_ids[i]])
 
-            asyncio.run(download(data))
+                    asyncio.run(download(data))
+                except:
+                    print(filename)
 
 

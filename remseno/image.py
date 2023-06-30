@@ -389,3 +389,29 @@ class Image(Remsenso):
         new_dataset.write(red_norm, 2)
         new_dataset.write(green_norm, 3)
         new_dataset.close()
+
+
+def get_values_for_location(image, lat, lon, bands_indices):
+    # Gets all values, i.e. all bands, and all indicies
+    y, x = image.image.index(lat, lon)
+    # Now get all bands
+    row = []
+    for b in bands_indices:
+        row.append(b[x, y])
+    return row
+
+
+def mask_values(index, lower_bound, upper_bound):
+    """
+    Mask the image based on the index passed (for example NDVI).
+    Make a multiplier i.e. 0 and 1s where it is above the threshold otherwise have nothing.
+
+    :param index:
+    :param index_cutoff:
+    :return:
+    """
+    # Convert pixels to 0 if we have a mask, not sure if this is the best way to do it...
+    mask = np.ma.masked_less_equal(index, upper_bound)
+    mask = np.ma.masked_greater_equal(mask.data*mask.mask, lower_bound)
+    return mask.mask*1.0
+

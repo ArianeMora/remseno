@@ -1,6 +1,8 @@
 'Calculates indices from tiff file.'
 import math
 
+from tensorflow_probability.substrates import numpy
+
 'The indices are modified from ' \
 'Wang, Z., Wang, T., Darvishzadeh, R., Skidmore, A. K., Jones, S., Suarez, L., ... & Hearne, J. (2016). ' \
 'Vegetation indices for mapping canopy foliar nitrogen in a mixed temperate forest. ' \
@@ -9,6 +11,27 @@ import math
 'For the bands that were not available, the indices were not calculated, for the other, the closest band has been considered.'
 
 from remseno import *
+import numpy as np
+
+
+def get_all_planetscope(img):
+    nitian = get_nitian(image=img, r_edge=7, blue_band=2)
+    ndvi = get_ndvi(image=img, red_band=6, nir_band=8)
+    sr = get_sr(image=img, red_band=6, nir_band=8)
+    tvi = get_tvi(image=img, red_band=6, rededge_band=7, green_band=4)
+    #rdvi = get_rdvi(image=img, red_band=6, nir_band=8)
+    gi = get_gi(image=img, red_band=6, green_band=4)
+    gndvi = get_gndvi(image=img, green_band=4, nir_band=8)
+    pri = get_pri(image=img, green_band=4, greeni_band=3)
+    osavi = get_osavi(image=img, red_band=6, nir_band=8)
+    tcari = get_tcari(image=img, rededge_band=7, greeni_band=3, red_band=6)
+    redge = get_redge(image=img, nir_band=8, green=4, r_edge=7)
+    redge2 = get_redge2(image=img, red_band=6, green=4, r_edge=7)
+    siredge = get_siredge(image=img, red_band=6, r_edge=7)
+    normg = get_normg(image=img, red_band=6, green_band=4, blue_band=2)
+    schl = get_schl(image=img, red_band=6, rededge_band=7, nir_band=8)
+    schlcar = get_schlcar(image=img, red_band=6, greeni_band=3)
+    return nitian, ndvi, sr, tvi, gi, gndvi, pri, osavi, tcari, redge, redge2, siredge, normg, schl, schlcar
 
 """
     Calculates NI_Tian - Nitrogen index
@@ -131,7 +154,7 @@ def get_rdvi(image, nir_band: int, red_band: int):
 
     red_band = image.read(red_band)
     nir_band = image.read(nir_band)
-    rdvi = (nir_band - red_band) / math.sqrt((nir_band + red_band))
+    rdvi = (nir_band - red_band) / math.sqrt(nir_band + red_band)
 
     return rdvi
 
@@ -249,7 +272,7 @@ def get_osavi(image, nir_band: int, red_band: int):
 ######################################################################################
 """
     Calculates TCARI
-    Transformed Chlorophyll Absorptionin ReflectanceIndex
+    Transformed Chlorophyll Absorption in ReflectanceIndex
 
     Canopy Chlorophyll Index
 
@@ -432,40 +455,3 @@ def get_schlcar(image, greeni_band: int, red_band: int):
 ######################################################################################
 
 'Opens the imagery, loads the bands and plosts the results'
-#
-# o = Ortho()
-# o.load_ortho(ortho_path='C:\\Users\\Gorde\\Documents\\GitHub\\remhybmon\\data\\public_data\\waldi_july.tif')
-#
-# nitian = get_nitian(image=o.ortho, r_edge=7, blue_band=2)
-# ndvi = get_ndvi(image=o.ortho, red_band=6, nir_band=8)
-# sr = get_sr(image=o.ortho, red_band=6, nir_band=8)
-# tvi = get_tvi(image=o.ortho, red_band=6, rededge_band=7, green_band=4)
-# rdvi = get_rdvi(image=o.ortho, red_band=6, nir_band=8)
-# gi = get_gi(image=o.ortho, red_band=6, green_band=4)
-# gndvi = get_gndvi(image=o.ortho, green_band=4, nir_band=8)
-# pri = get_pri(image=o.ortho, green_band=4, greeni_band=3)
-# osavi = get_osavi(image=o.ortho, red_band=6, nir_band=8)
-# tcari = get_tcari(image=o.ortho, rededge_band=7, greeni_band=3, red_band=6)
-# redge = get_redge(image=o.ortho, nir_band=8, green=4, r_edge=7)
-# redge2 = get_redge2(image=o.ortho, red_band=6, green=4, r_edge=7)
-# siredge = get_siredge(image=o.ortho, red_band=6, r_edge=7)
-# normg = get_normg(image=o.ortho, red_band=6, green_band=4, blue_band=2)
-# schl = get_schl(image=o.ortho, red_band=6, rededge_band=7, nir_band=8)
-#
-#
-# o.plot_idx(nitian)
-# o.plot_idx(ndvi)
-# o.plot_idx(sr)
-# o.plot_idx(tvi)
-# o.plot_idx(rdvi)
-# o.plot_idx(gi)
-# o.plot_idx(gndvi)
-# o.plot_idx(pri)
-# o.plot_idx(osavi)
-# o.plot_idx(tcari)
-# o.plot_idx(redge)
-# o.plot_idx(redge2)
-# o.plot_idx(siredge)
-# o.plot_idx(normg)
-# o.plot_idx(schl)
-# o.plot_idx(schlcar)

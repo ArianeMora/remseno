@@ -89,4 +89,4 @@ async def download(data):
         await asyncio.gather(*[
             create_and_download(client, request, DOWNLOAD_DIR)
             for request in requests
-        ])
+        ], return_exceptions=True)
