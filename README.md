@@ -18,7 +18,7 @@ You need: a coordinate file (which has the tree ID, tree label (i.e. class), X, 
 from remseno import *
 coordinate_file_path = f'../data/dryad_trees/QGIS/Annotations.csv' 
 c = Coords(coordinate_file_path, x_col='Y', y_col='X', label_col='class',
-                   id_col='id', sep=',', class1='RedCedar', class2='Pine', crs="EPSG:4326")
+                   id_col='id', sep=',', class1='RedCedar', class2='Pine', crs="EPSG:21781")
 
 ```
 ### load in ortho or satellite image data
