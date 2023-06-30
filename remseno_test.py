@@ -4,12 +4,12 @@ np.seterr(divide='ignore', invalid='ignore')
 
 
 coordinate_file_path = 'C:/Users/Gorde/Documents/GitHub/remhybmon/data/public_data/Waeldi_Adults_genotyped2.csv'
-c = Coords(coordinate_file_path, x_col='Y', y_col='X', label_col='class',
-                   id_col='id', sep=',', class1='Slyvatica', class2='Orientalis', crs="EPSG:21781")
+c = Coords(coordinate_file_path, x_col='X', y_col='Y', label_col='class',
+                   id_col='id', sep=',', class1='Sylvatica', class2='Orientalis', crs="EPSG:21781")
 
 
 from remseno import *
-drone_ortho = 'C:/Users/Gorde/Documents/GitHub/remhybmon/data/public_data/waldi_may.tif'
+drone_ortho = 'C:/Users/Gorde/Documents/GitHub/remhybmon/data/public_data/waldi_nov.tif'
 o = Image()
 o.load_image(image_path=drone_ortho)
 
@@ -23,7 +23,7 @@ clf = DecisionTreeClassifier(random_state=0)
 
 ml = ML()
 ml_df = ml.train_ml(clf, image=o, bands=[1, 2, 3], coords=c, normalise=True, max_pixel_padding=1)
-ml_df
+ml_df.to_csv('C:/Users/Gorde/Documents/GitHub/remhybmon/data/public_data/nov.csv')
 
 
 

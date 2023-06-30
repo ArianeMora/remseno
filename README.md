@@ -14,7 +14,7 @@ pip install other_software/planet-client-python-2.0.3.tar.gz
 ```
 
 # quick start
-You need: a coordinate file (which has the tree ID, tree label (i.e. class), X, and Y coordinates, and the coordinate reference system).
+You need: a coordinate file (which has the tree ID, tree label (i.e. class), X, and Y coordinates, and you should know the coordinate reference system).
 
 ## example with RBG data from drone footage
 
