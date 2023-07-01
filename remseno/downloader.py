@@ -39,18 +39,16 @@ os.environ['PL_API_KEY'] = API_KEY
 DOWNLOAD_DIR = os.getenv('TEST_DOWNLOAD_DIR', '.')
 
 summer_2022 = ["2022-06-01T00:00:00.000Z", "2022-08-30T00:00:00.000Z",
-               "2022-01-12T00:00:00.000Z", "2023-02-26T00:00:00.000Z"
-               ]
+               "2022-01-12T00:00:00.000Z", "2023-02-26T00:00:00.000Z"]
 
-winter_2022 = ["2022-01-12T00:00:00.000Z", "2023-02-26T00:00:00.000Z"
-               "2022-06-01T00:00:00.000Z", "2022-08-30T00:00:00.000Z",
-               ]
-spring_2022 = ["2022-01-04T00:00:00.000Z", "2023-05-30T00:00:00.000Z"
-               "2022-09-01T00:00:00.000Z", "2022-10-30T00:00:00.000Z",
-               ]
+winter_2022 = ["2022-01-12T00:00:00.000Z", "2023-02-26T00:00:00.000Z",
+               "2022-06-01T00:00:00.000Z", "2022-08-30T00:00:00.000Z"]
+
+spring_2022 = ["2022-01-04T00:00:00.000Z", "2023-05-30T00:00:00.000Z",
+               "2022-09-01T00:00:00.000Z", "2022-10-30T00:00:00.000Z"]
+
 autumn_2022 = ["2022-09-01T00:00:00.000Z", "2022-10-30T00:00:00.000Z",
-               "2022-01-04T00:00:00.000Z", "2023-05-30T00:00:00.000Z"
-               ]
+               "2022-01-04T00:00:00.000Z", "2023-05-30T00:00:00.000Z"]
 
 PLANET_API_KEY = os.getenv('PL_API_KEY')
 # Setup the API Key from the `PL_API_KEY` environment variable
@@ -153,12 +151,15 @@ def select_image_ids(filename, position, gte, max_cloud_cover=0.1, visible_perce
     # Also only want it if ortho_analytic_8b_sr is availabe in assets
     asset = 'ortho_analytic_8b_sr'
     for image in geojson['features']:
-        if asset in image['assets']:
-            visible_perc.append(image['properties']['visible_percent'])
-            cloud_cover.append(image['properties']['cloud_cover'])
-            ids.append(image['id'])
-            sun_azi.append(image['properties']['sun_azimuth'])
-            azi.append(image['properties']['satellite_azimuth'])
+        if asset in image['assets']: # 'visible_percent'
+            try:
+                visible_perc.append(image['properties']['visible_percent'])
+                cloud_cover.append(image['properties']['cloud_cover'])
+                ids.append(image['id'])
+                sun_azi.append(image['properties']['sun_azimuth'])
+                azi.append(image['properties']['satellite_azimuth'])
+            except:
+                print(asset)
     geo_df['ids'] = ids
     geo_df['visible_percent'] = visible_perc
     geo_df['sun_azimuth'] = sun_azi
@@ -171,9 +172,9 @@ def select_image_ids(filename, position, gte, max_cloud_cover=0.1, visible_perce
     # Get the mean azimuth i.e. optimise between sun and sat
     geo_df['mean_azi'] = (abs(abs(geo_df['sun_azimuth'].values) - 90) + abs(
         (abs(geo_df['satellite_azimuth'].values) - 90))) / 2
-    geo_df = geo_df.sort_values(['cloud_cover', 'mean_azi'])  # We want it to be as close to 90 degrees as possible
+    geo_df = geo_df.sort_values(['cloud_cover', 'visible_percent', 'mean_azi'])  # We want it to be as close to 90 degrees as possible
     geo_df.to_csv(filename, index=False)
-
+    return geo_df['ids'].values[0]
 
 def create_requests(poly, image_id):
     # The Orders API will be asked to mask, or clip, results to
