@@ -26,20 +26,153 @@
 # the AOIs and get the image ids.
 # """
 
-import asyncio
-import os
-# import os module to access enviornmental modules
-
+# Need to download planetscope data for these regions namely, a 1000m2 region
+import pandas as pd
+from requests.auth import HTTPBasicAuth
 import requests
-
-from planet import Session
-
-os.environ['PL_API_KEY'] = '86d667757ba14bc38dd4555d8ab948d5'
 import asyncio
 import os
 import planet
 
+API_KEY = '86d667757ba14bc38dd4555d8ab948d5'
+os.environ['PL_API_KEY'] = API_KEY
 DOWNLOAD_DIR = os.getenv('TEST_DOWNLOAD_DIR', '.')
+
+summer_2022 = ["2022-06-01T00:00:00.000Z", "2022-08-30T00:00:00.000Z",
+               "2022-01-12T00:00:00.000Z", "2023-02-26T00:00:00.000Z"
+               ]
+
+winter_2022 = ["2022-01-12T00:00:00.000Z", "2023-02-26T00:00:00.000Z"
+               "2022-06-01T00:00:00.000Z", "2022-08-30T00:00:00.000Z",
+               ]
+spring_2022 = ["2022-01-04T00:00:00.000Z", "2023-05-30T00:00:00.000Z"
+               "2022-09-01T00:00:00.000Z", "2022-10-30T00:00:00.000Z",
+               ]
+autumn_2022 = ["2022-09-01T00:00:00.000Z", "2022-10-30T00:00:00.000Z",
+               "2022-01-04T00:00:00.000Z", "2023-05-30T00:00:00.000Z"
+               ]
+
+PLANET_API_KEY = os.getenv('PL_API_KEY')
+# Setup the API Key from the `PL_API_KEY` environment variable
+
+BASE_URL = "https://api.planet.com/data/v1"
+
+session = requests.Session()
+
+# Authenticate session with user name and password, pass in an empty string for the password
+session.auth = (PLANET_API_KEY, "")
+
+res = session.get(BASE_URL)
+
+
+def select_image_ids(filename, position, gte, max_cloud_cover=0.1, visible_percent=100):
+    """
+    Select image ids for a position.
+
+    :param filename:
+    :param position:
+    :param gte:
+    :param max_cloud_cover:
+    :param visible_percent:
+    :return:
+    """
+    north_gte = gte[0]
+    north_lte = gte[1]
+    # print response body
+    south_gte = gte[2]
+    south_lte = gte[3]
+
+    if position[0][0] < 0:
+        gte = south_gte
+        lte = south_lte
+    else:
+        gte = north_gte
+        lte = north_lte
+
+    geojson_geometry = {
+        "type": "Polygon",
+        "coordinates": [
+            position
+        ]
+    }
+    # get images that overlap with our AOI
+    geometry_filter = {
+        "type": "GeometryFilter",
+        "field_name": "geometry",
+        "config": geojson_geometry
+    }
+
+    # get images acquired within a date range
+    date_range_filter = {
+        "type": "DateRangeFilter",
+        "field_name": "acquired",
+        "config": {
+            "gte": gte,
+            "lte": lte
+        }
+    }
+
+    # only get images which have <50% cloud coverage
+    cloud_cover_filter = {
+        "type": "RangeFilter",
+        "field_name": "cloud_cover",
+        "config": {
+            "lte": max_cloud_cover
+        }
+    }
+
+    # combine our geo, date, cloud filters
+    combined_filter = {
+        "type": "AndFilter",
+        "config": [geometry_filter, cloud_cover_filter, date_range_filter],
+    }
+
+    item_type = "PSScene"
+
+    # API request object
+    search_request = {
+        "item_types": [item_type],
+        "filter": combined_filter
+    }
+
+    # fire off the POST request
+    search_result = \
+        requests.post(
+            'https://api.planet.com/data/v1/quick-search',
+            auth=HTTPBasicAuth(API_KEY, ''),
+            json=search_request)
+
+    geojson = search_result.json()
+
+    geo_df = pd.DataFrame()  # Add in the things we're looking at
+    ids = []
+    azi = []
+    cloud_cover = []
+    visible_perc = []
+    sun_azi = []
+    # Also only want it if ortho_analytic_8b_sr is availabe in assets
+    asset = 'ortho_analytic_8b_sr'
+    for image in geojson['features']:
+        if asset in image['assets']:
+            visible_perc.append(image['properties']['visible_percent'])
+            cloud_cover.append(image['properties']['cloud_cover'])
+            ids.append(image['id'])
+            sun_azi.append(image['properties']['sun_azimuth'])
+            azi.append(image['properties']['satellite_azimuth'])
+    geo_df['ids'] = ids
+    geo_df['visible_percent'] = visible_perc
+    geo_df['sun_azimuth'] = sun_azi
+    geo_df['satellite_azimuth'] = azi
+    geo_df['cloud_cover'] = cloud_cover
+
+    geo_df = geo_df[geo_df['visible_percent'] >= visible_percent]
+    # Save this to CSV anyway so that the user can use it later
+
+    # Get the mean azimuth i.e. optimise between sun and sat
+    geo_df['mean_azi'] = (abs(abs(geo_df['sun_azimuth'].values) - 90) + abs(
+        (abs(geo_df['satellite_azimuth'].values) - 90))) / 2
+    geo_df = geo_df.sort_values(['cloud_cover', 'mean_azi'])  # We want it to be as close to 90 degrees as possible
+    geo_df.to_csv(filename, index=False)
 
 
 def create_requests(poly, image_id):
