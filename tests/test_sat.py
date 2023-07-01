@@ -40,8 +40,8 @@ class TestSat(TestRemsenso):
         # Test trianing a VAE for checking OOD
         o = self.get_test_ortho()
         c = self.get_test_coords()
-        c.plot_on_image(o, band=1)
-        plt.show()
+        #c.plot_on_image(o, band=1)
+        #plt.show()
 
     def test_ndvi(self):
         o = self.get_test_ortho()

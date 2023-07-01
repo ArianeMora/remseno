@@ -162,13 +162,9 @@ class Coords(Remsenso):
         self.df[self.y_col] = converted_y
 
         if plot:
-            # Replot them now
-            plt.scatter(self.df[self.x_col], self.df[self.y_col], c=self.df[self.binary_label].values)
-            # Drop the outlier and looks about right woo!
-            plt.title(f'Coords transformed: {tree_coords} --> {image_coords}')
-            plt.xlabel(self.x_col)
-            plt.ylabel(self.y_col)
-            plt.show()
+            self.vis.plot_coords(self.df, self.x_col, self.y_col, colour_col=self.df[self.binary_label].values,
+                                 show_plot=True, title=f'{tree_coords} --> {image_coords}')
+
 
     def build_circle_from_centre_point(self, x: int, y: int, radius_pixels: int):
         """
