@@ -1,15 +1,12 @@
-from tqdm import tqdm
-import pandas as pd
+from remseno import *
+
 # Build the polygon
 data_dir = '../data/harvard/'
-df = pd.DataFrame(data=[['plot', 'harvard', 42.540000, -72.180000]], columns=['id', 'label', 'lat', 'lon'])
+df = pd.DataFrame(data=[['plot', 'harvard', 42.536900, -72.172660]], columns=['id', 'label', 'lat', 'lon'])
 df.to_csv(f'{data_dir}plot.csv', index=False)
 
-from remseno import *
-import pandas as pd
-
 c = Coords(f'{data_dir}plot.csv', x_col='lon', y_col='lat', label_col='label',
-                   id_col='id', sep=',', class1='harvard', class2='harvard', crs='EPSG:4326')
+           id_col='id', sep=',', class1='harvard', class2='harvard', crs='EPSG:4326')
 
 ys = df['lat'].values
 bbs = []
@@ -46,9 +43,9 @@ image_ids = image_ids
 lat = df['lat'].values[0]
 lon = df['lon'].values[0]
 for i, v in enumerate(image_ids):
-    aoi = c.build_polygon_from_centre_point(lat, lon, 1000, 1000, "EPSG:4326")
+    aoi = c.build_polygon_from_centre_point(lat, lon, meters, meters, "EPSG:4326")
     # For some reason need to swap it around classic no idea why...
     aoi = [[p[1], p[0]] for p in aoi]
     data.append([aoi, image_ids[i]])
-
+print(data)
 asyncio.run(download(data))

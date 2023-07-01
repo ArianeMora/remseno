@@ -34,21 +34,22 @@ import asyncio
 import os
 import planet
 
-API_KEY = '86d667757ba14bc38dd4555d8ab948d5'
+API_KEY = 'PLAK5a21e86c2faf452195d43c3ca3f318ee'
+
 os.environ['PL_API_KEY'] = API_KEY
 DOWNLOAD_DIR = os.getenv('TEST_DOWNLOAD_DIR', '.')
 
 summer_2022 = ["2022-06-01T00:00:00.000Z", "2022-08-30T00:00:00.000Z",
-               "2022-01-12T00:00:00.000Z", "2023-02-26T00:00:00.000Z"]
+               "2022-12-01T00:00:00.000Z", "2023-02-26T00:00:00.000Z"]
 
 winter_2022 = ["2022-01-12T00:00:00.000Z", "2023-02-26T00:00:00.000Z",
                "2022-06-01T00:00:00.000Z", "2022-08-30T00:00:00.000Z"]
 
-spring_2022 = ["2022-01-04T00:00:00.000Z", "2023-05-30T00:00:00.000Z",
+spring_2022 = ["2022-04-01T00:00:00.000Z", "2023-05-30T00:00:00.000Z",
                "2022-09-01T00:00:00.000Z", "2022-10-30T00:00:00.000Z"]
 
 autumn_2022 = ["2022-09-01T00:00:00.000Z", "2022-10-30T00:00:00.000Z",
-               "2022-01-04T00:00:00.000Z", "2023-05-30T00:00:00.000Z"]
+               "2022-04-01T00:00:00.000Z", "2023-05-30T00:00:00.000Z"]
 
 PLANET_API_KEY = os.getenv('PL_API_KEY')
 # Setup the API Key from the `PL_API_KEY` environment variable
@@ -176,7 +177,7 @@ def select_image_ids(filename, position, gte, max_cloud_cover=0.1, visible_perce
     geo_df.to_csv(filename, index=False)
     return geo_df['ids'].values[0]
 
-def create_requests(poly, image_id):
+def create_requests(poly, image_id, label):
     # The Orders API will be asked to mask, or clip, results to
     # this area of interest.
     iowa_aoi = {
@@ -192,7 +193,7 @@ def create_requests(poly, image_id):
     iowa_items = [image_id]
 
     iowa_order = planet.order_request.build_request(
-        name='iowa_order',
+        name=label,
         products=[
             planet.order_request.product(item_ids=iowa_items,
                                          product_bundle='analytic_8b_sr_udm2',
@@ -218,7 +219,7 @@ async def download(data):
         client = sess.client('orders')
         requests = []
         for d in data:
-            requests.append(create_requests(d[0], d[1]))
+            requests.append(create_requests(d[0], d[1], d[2]))
 
         await asyncio.gather(*[
             create_and_download(client, request, DOWNLOAD_DIR)
