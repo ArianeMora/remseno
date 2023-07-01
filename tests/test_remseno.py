@@ -250,7 +250,6 @@ class TestRemsenso(TestClass):
             asyncio.run(download(data))
 
     def test_download_corsica(self):
-        download_scenes = True
         data_dir = '../data/silver_fir/'
         files = [f'{data_dir}Autumn_planet_scope_selected_image.csv',
                  f'{data_dir}Spring_planet_scope_selected_image.csv',

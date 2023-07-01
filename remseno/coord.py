@@ -40,7 +40,7 @@ import planet
 import matplotlib.pyplot as plt
 import pandas as pd
 from pyproj import Transformer
-
+from remseno.vis import Vis
 
 os.environ['PL_API_KEY'] = 'PLAK5a21e86c2faf452195d43c3ca3f318ee'
 
@@ -49,7 +49,7 @@ class Coords(Remsenso):
 
     def __init__(self, file_path: str, x_col: str, y_col: str,
                  label_col: str, id_col: str, class1, class2, crs,
-                 binary_label='binary_label', sep=','):
+                 binary_label='binary_label', sep=',', vis_style={}):
         super().__init__()
         self.df = None
         self.x_col, self.y_col, self.label_col, self.id_col, self.class1, self.class2, \
@@ -57,8 +57,10 @@ class Coords(Remsenso):
         self.binary_label = binary_label
         self.crs = crs # Coordinate reference system
         self.load(file_path)
+        self.vis = Vis()
+        self.vis.load_style(vis_style)
 
-    def load(self, file_path, plot=False):
+    def load(self, file_path, plot=False, plot_title='Coords scatter'):
         df = pd.read_csv(file_path, sep=self.sep)
         # Filter the dataframe to only include the two classes
         original_size = len(df)
@@ -70,14 +72,8 @@ class Coords(Remsenso):
         df[self.binary_label] = [0 if c == self.class1 else 1 for c in df[self.label_col].values]
         self.df = df
         if plot:
-            # Plot the X and Y coordinates
-            plt.scatter(df[self.x_col], df[self.y_col], c=df[self.binary_label].values)
-            # Drop the outlier and looks about right woo!
-            plt.title('Coords scatter')
-            plt.xlabel(self.x_col)
-            plt.ylabel(self.y_col)
-            plt.show()
-            # If you notice that it looks wrong you might need to remove some data or points
+            self.vis.plot_coords(df, self.x_col, self.y_col, colour_col=df[self.binary_label].values,
+                                 show_plot=True, title=plot_title)
 
     def plot_on_ax(self, ax, image):
         """
