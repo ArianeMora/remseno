@@ -33,7 +33,7 @@ class TestML(TestRemsenso):
         # Also add an index
         bands.append(get_ndvi(o1, 1, 2))
         df = ml.train_ml(clf, image=o1, coords=c, image_bands=bands, validation_percent=20, test_percent=20,
-                 max_pixel_padding=2, normalise=False)
+                         max_pixel_padding=2, normalise=False)
         df.to_csv('test_pred.csv')
 
     def test_different_training_ml(self):
