@@ -393,4 +393,3 @@ def mask_values(index, lower_bound, upper_bound):
     mask = np.ma.masked_less_equal(index, upper_bound)
     mask = np.ma.masked_greater_equal(mask.data*mask.mask, lower_bound)
     return mask.mask*1.0
-
