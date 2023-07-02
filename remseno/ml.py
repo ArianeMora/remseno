@@ -48,7 +48,7 @@ class ML:
         self.train_df.to_csv(os.path.join(output_dir, f'trainDF_{label}.csv'), index=False)
         self.validation_df.to_csv(os.path.join(output_dir, f'validDF_{label}.csv'), index=False)
 
-    def build_train_df(self, df, image, coords, bands, max_pixel_padding=2,
+    def build_train_df(self, df, image, coords, image_bands, max_pixel_padding=2,
                        band_labels=None, normalise=False):
         """
         Build a training dataframe from image and coordinate files!
@@ -60,20 +60,13 @@ class ML:
         :param band_labels:
         :return:
         """
-        band_labels = band_labels if band_labels else [f'b{i}' for i in range(0, len(bands))]
         xs = df[coords.x_col].values
         ys = df[coords.y_col].values
         rows = []
         # Image bands is something like below, we leave it up to the user to define i.e. could be indicies
-        image_bands = []
-        for band in bands: # Always normalise so that it is easier for
-            normed = image.image.read(band)
-            if normalise:
-                image_bands.append(rasterio.plot.adjust_band(normed))
-            else:
-                image_bands.append(normed) # #normed-np.mean(normed)) #(normed - np.min(normed)) / (np.max(normed) - np.min(normed)))
-
         classes = df[coords.label_col].values
+        band_labels = [f'band_{band_i}' for band_i, c in enumerate(image_bands)]
+
         for i, tid in enumerate(df[coords.id_col].values):
             y, x = image.image.index(xs[i], ys[i])
             # Now for each bounding area make a training point
@@ -81,7 +74,7 @@ class ML:
             for xy in bb:
                 # We now build the feature set which is
                 data_row = [tid, classes[i], xy[0], xy[1]]
-                for image_band in image_bands:
+                for band_i, image_band in enumerate(image_bands):
                     # Here we are extracting the feature i.e. the value from the image bands we're interested in
                     data_row.append(image_band[xy[1], xy[0]])
                 rows.append(data_row)
@@ -89,7 +82,7 @@ class ML:
         train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.label_col, coords.x_col, coords.y_col] + band_labels)
         return train_df, band_labels
 
-    def validate(self, clf, image, coords, bands, max_pixel_padding=2, normalise=False):
+    def validate(self, clf, image, coords, image_bands, max_pixel_padding=2, normalise=False):
         """
         Validate a pretrained classifier
         :param clf:
@@ -108,7 +101,7 @@ class ML:
         # Build training DF from the coords
         # First we want to hold some trees out, so we select a random sample from the dataset
         # Now use the other as the dataframe
-        df, training_cols = self.build_train_df(coords.df, image, coords, bands, max_pixel_padding=max_pixel_padding,
+        df, training_cols = self.build_train_df(coords.df, image, coords, image_bands, max_pixel_padding=max_pixel_padding,
                                                 normalise=normalise)
 
         X = df[training_cols].values
@@ -142,7 +135,7 @@ class ML:
         self.clf = clf  # Save to the model
         return self.get_overall_tree_pred(coords.df, coords, df, df)
 
-    def train_ml(self, clf, image, coords, bands, validation_percent=20, test_percent=20,
+    def train_ml(self, clf, image, coords, image_bands, validation_percent=20, test_percent=20,
                  max_pixel_padding=2, normalise=False):
         """
         Train a ML classifier for the image and coords.
@@ -154,10 +147,10 @@ class ML:
         valid_df = coords.df.sample(math.ceil(len(coords.df)*(validation_percent/100)))
         # Now use the other as the dataframe
         df = coords.df[~coords.df[coords.id_col].isin(list(valid_df[coords.id_col].values))]
-        df, training_cols = self.build_train_df(df, image, coords, bands, max_pixel_padding=max_pixel_padding,
+        df, training_cols = self.build_train_df(df, image, coords, image_bands, max_pixel_padding=max_pixel_padding,
                                                 normalise=normalise)
         self.train_df = df
-        self.valid_df, training_cols = self.build_train_df(valid_df, image, coords, bands,
+        self.valid_df, training_cols = self.build_train_df(valid_df, image, coords, image_bands,
                                                            max_pixel_padding=max_pixel_padding, normalise=normalise)
 
         X = df[training_cols].values

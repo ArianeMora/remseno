@@ -29,8 +29,10 @@ class TestML(TestRemsenso):
         ml = ML()
         # Make a classifier any from sklearn
         clf = svm.SVC(C=8.0, kernel='poly', class_weight='balanced')
-
-        df = ml.train_ml(clf, image=o1, coords=c, bands=[1, 2, 3], validation_percent=20, test_percent=20,
+        bands = [o1.image.read(b) for b in [1, 2, 3]]
+        # Also add an index
+        bands.append(get_ndvi(o1, 1, 2))
+        df = ml.train_ml(clf, image=o1, coords=c, image_bands=bands, validation_percent=20, test_percent=20,
                  max_pixel_padding=2, normalise=False)
         df.to_csv('test_pred.csv')
 
@@ -41,8 +43,8 @@ class TestML(TestRemsenso):
         ml = ML()
         # Make a classifier any from sklearn
         clf = DecisionTreeClassifier(random_state=0)
-
-        df = ml.train_ml(clf, image=o1, coords=c, bands=[1, 2, 3], validation_percent=20, test_percent=20,
+        bands = [o1.image.read(b) for b in [1, 2, 3]]
+        df = ml.train_ml(clf, image=o1, coords=c, image_bands=bands, validation_percent=20, test_percent=20,
                          max_pixel_padding=2, normalise=False)
         df.to_csv('test_pred.csv')
 
