@@ -30,6 +30,9 @@ from sklearn.metrics import balanced_accuracy_score
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
 
 class ML:
 
@@ -70,7 +73,7 @@ class ML:
             else:
                 image_bands.append(normed) # #normed-np.mean(normed)) #(normed - np.min(normed)) / (np.max(normed) - np.min(normed)))
 
-        classes = df[coords.binary_label].values
+        classes = df[coords.label_col].values
         for i, tid in enumerate(df[coords.id_col].values):
             y, x = image.image.index(xs[i], ys[i])
             # Now for each bounding area make a training point
@@ -83,8 +86,61 @@ class ML:
                     data_row.append(image_band[xy[1], xy[0]])
                 rows.append(data_row)
         # Now create a dataframe from this
-        train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.binary_label, coords.x_col, coords.y_col] + band_labels)
+        train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.label_col, coords.x_col, coords.y_col] + band_labels)
         return train_df, band_labels
+
+    def validate(self, clf, image, coords, bands, max_pixel_padding=2, normalise=False):
+        """
+        Validate a pretrained classifier
+        :param clf:
+        :param image:
+        :param coords:
+        :param bands:
+        :param max_pixel_padding:
+        :param normalise:
+        :return:
+        """
+        """
+               Train a ML classifier for the image and coords.
+
+               :return: VAE or something
+               """
+        # Build training DF from the coords
+        # First we want to hold some trees out, so we select a random sample from the dataset
+        # Now use the other as the dataframe
+        df, training_cols = self.build_train_df(coords.df, image, coords, bands, max_pixel_padding=max_pixel_padding,
+                                                normalise=normalise)
+
+        X = df[training_cols].values
+        y = df[coords.label_col]
+        # Train model
+        test_score = clf.score(X, y)
+        y_pred = clf.predict(X)
+        print(test_score, y_pred)
+        print(clf.score(X, y))
+        print(balanced_accuracy_score(y, clf.predict(X)))
+        # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
+        # Solve for w3 (z)
+        z = lambda x, y: (-clf.intercept_[0] - clf.coef_[0][0] * x - clf.coef_[0][1] * y) / clf.coef_[0][2]
+        Y = y
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        # For each class add as a point
+        for yval in set(Y):
+            ax.plot3D(X[Y == yval, 0], X[Y == yval, 1], X[Y == yval, 2], 'o')
+        plt.show()
+
+        # Also do a decision tree classifier
+        pred = clf.predict(X)
+        cm = confusion_matrix(df[coords.label_col], pred, labels=clf.classes_)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
+        disp.plot()
+        plt.show()
+
+        # Add the predicted label in for each
+        df['predicted_label'] = pred
+        self.clf = clf  # Save to the model
+        return self.get_overall_tree_pred(coords.df, coords, df, df)
 
     def train_ml(self, clf, image, coords, bands, validation_percent=20, test_percent=20,
                  max_pixel_padding=2, normalise=False):
@@ -105,7 +161,7 @@ class ML:
                                                            max_pixel_padding=max_pixel_padding, normalise=normalise)
 
         X = df[training_cols].values
-        y = df[coords.binary_label]
+        y = df[coords.label_col]
         # Train model
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_percent/100,
                                                             random_state=18)
@@ -117,23 +173,28 @@ class ML:
         print(test_score, y_pred)
         # Then also do the final ones in the validation df i.e. unseen trees
         X = self.valid_df[training_cols].values
-        y = self.valid_df[coords.binary_label]
+        y = self.valid_df[coords.label_col]
         print(clf.score(X, y))
         print(balanced_accuracy_score(y, clf.predict(X)))
         print(len(self.valid_df), len(self.train_df))
         # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
         # Solve for w3 (z)
-        z = lambda x, y: (-clf.intercept_[0] - clf.coef_[0][0] * x - clf.coef_[0][1] * y) / clf.coef_[0][2]
         Y = y
-        tmp = np.linspace(0, 1, 30)
-        x, y = np.meshgrid(tmp, tmp)
 
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-        #ax.plot_surface(x, y, z(x, y))
-        ax.plot3D(X[Y == 0, 0], X[Y == 0, 1], X[Y == 0, 2], 'ob')
-        ax.plot3D(X[Y == 1, 0], X[Y == 1, 1], X[Y == 1, 2], 'sr')
+        # For each class add as a point
+        for yval in set(Y):
+            ax.plot3D(X[Y == yval, 0], X[Y == yval, 1], X[Y == yval, 2], 'o')
         plt.show()
+
+        # Also do a decision tree classifier
+        pred = clf.predict(X_test)
+        cm = confusion_matrix(y_test, pred, labels=clf.classes_)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
+        disp.plot()
+        plt.show()
+
         # Add the predicted label in for each
         self.train_df['predicted_label'] = clf.predict(self.train_df[training_cols].values)
         self.valid_df['predicted_label'] = clf.predict(self.valid_df[training_cols].values)
@@ -154,7 +215,7 @@ class ML:
         grped_df = train_df.groupby(coords.id_col)
         for gid, g_df in grped_df:
             # Get the most common colour
-            true_label = g_df[coords.binary_label].values[0]
+            true_label = g_df[coords.label_col].values[0]
             # Now check what the average prediction was
             pred_correct = len(g_df[g_df['predicted_label'] == true_label])
             pred_incorrect = len(g_df[g_df['predicted_label'] != true_label])
@@ -164,7 +225,7 @@ class ML:
                 correct += 1
             else:
                 # Only works for the binary class problem
-                pred_value = 0 if true_label == 1 else 1
+                pred_value = None
                 incorrect += 1
             overall_pred = 'correct' if correct > incorrect else 'incorrect'
             id_value_map[gid] = {'pred': pred_value, 'pred_prob': pred_correct / (pred_correct + pred_incorrect),
