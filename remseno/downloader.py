@@ -168,12 +168,14 @@ def select_image_ids(filename, position, gte, max_cloud_cover=0.1, visible_perce
     geo_df['cloud_cover'] = cloud_cover
 
     geo_df = geo_df[geo_df['visible_percent'] >= visible_percent]
+    # Swap visible percent to invisible so that we sort correctly
+    geo_df['hidden_percent'] = 100 - geo_df['visible_percent'].values
     # Save this to CSV anyway so that the user can use it later
 
     # Get the mean azimuth i.e. optimise between sun and sat
     geo_df['mean_azi'] = (abs(abs(geo_df['sun_azimuth'].values) - 90) + abs(
         (abs(geo_df['satellite_azimuth'].values) - 90))) / 2
-    geo_df = geo_df.sort_values(['cloud_cover', 'visible_percent', 'mean_azi'])  # We want it to be as close to 90 degrees as possible
+    geo_df = geo_df.sort_values(['cloud_cover', 'hidden_percent', 'mean_azi'])  # We want it to be as close to 90 degrees as possible
     geo_df.to_csv(filename, index=False)
     return geo_df['ids'].values[0]
 

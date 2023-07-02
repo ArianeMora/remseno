@@ -20,7 +20,7 @@ from tests.test_remseno import TestRemsenso
 
 img_bands = [1, 2, 3, 4, 5, 6, 7, 8]
 
-image = '../data/tallo/planetscope/sat_data/dab9fa59-4a98-4319-ad5f-acea23bc6feb/PSScene/20230113_230924_81_241e_3B_AnalyticMS_SR_8b_clip.tif'
+image = '/Users/ariane/Documents/code/remseno/scripts/4a2552c1-ea6d-4439-9da2-4d45ed54d049/PSScene/20220606_144123_29_2435_3B_AnalyticMS_SR_8b_clip.tif' #'../scripts/a69ebaa1-258f-4f50-8952-7344ac2f93bf/PSScene/20220606_144123_29_2435_3B_AnalyticMS_SR_8b_clip.tif' # '../data/tallo/planetscope/sat_data/dab9fa59-4a98-4319-ad5f-acea23bc6feb/PSScene/20230113_230924_81_241e_3B_AnalyticMS_SR_8b_clip.tif'
 coords = '../data/tallo/planetscope/planetscope_test.csv'
 
 
