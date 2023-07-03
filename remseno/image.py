@@ -379,6 +379,13 @@ def get_values_for_location(image, lat, lon, bands_indices):
         row.append(b[x, y])
     return row
 
+def get_values_for_xy(x, y, bands_indices):
+    # Gets all values, i.e. all bands, and all indicies
+    # Now get all bands
+    row = []
+    for b in bands_indices:
+        row.append(b[x, y])
+    return row
 
 def mask_values(index, lower_bound, upper_bound):
     """
