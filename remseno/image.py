@@ -36,7 +36,7 @@ Outputs:
 from remseno.base import Remsenso
 import os
 import numpy as np
-
+from remseno.vis import Vis
 
 # Normalize bands into 0.0 - 1.0 scale
 def normalise(array):
@@ -46,11 +46,13 @@ def normalise(array):
 
 class Image(Remsenso):
 
-    def __init__(self, name=''):
+    def __init__(self, name='', vis_style={}):
         super().__init__()
         self.image = None
         self.crs = None
         self.name = name
+        self.vis = Vis()
+        self.vis.load_style(vis_style)
 
     def get_bands(self):
         """
@@ -151,7 +153,7 @@ class Image(Remsenso):
 
         self.u.warn_p(['You will need to copy and paste that command into your terminal now!'])
 
-    def plot_idx(self, band, ax=None, show_plot=False, downsample=None, cmap='pink', roi= None):
+    def plot_idx(self, band, ax=None, show_plot=False, downsample=None, cmap='pink', roi= None, title=''):
         """
         Plot specific bands or calculated index (as below but just uses the band already calcualted)
 
@@ -160,18 +162,12 @@ class Image(Remsenso):
         :param ax:
         :return: ax
         """
-        # Plot the first band
-        if ax is None:
-            fig, ax = plt.subplots()
+
         if roi:
             band = band[roi['y1']: roi['y2'], roi['x1']: roi['x2']]
         if downsample:
             band = band[::downsample, ::downsample]
-        ax.imshow(band, cmap=cmap)
-        ax.set_title(f'{self.name}')
-        if show_plot:
-            plt.show()
-        return ax
+        return self.vis.plot_img(band, ax=ax, show_plot=show_plot, title=title, cmap=cmap)
 
     def plot_multi_bands(self, bands: list, title='', ax=None, show_plot=False, downsample=None, roi=None):
         """
@@ -181,8 +177,6 @@ class Image(Remsenso):
         :param show_plot:
         :return:
         """
-        if ax is None:
-            fig, ax = plt.subplots()
         # Convert to numpy arrays
         img_bands = []
         for b in bands:
@@ -195,23 +189,16 @@ class Image(Remsenso):
 
         # Stack bands
         nrg = np.dstack(img_bands)
+        return self.vis.plot_img(nrg, ax=ax, show_plot=show_plot, title=title)
 
-        # View the color composite
-        ax.imshow(nrg)
-        ax.set_title(f'{title}')
-        if show_plot:
-            plt.show()
-        return ax
-
-    def plot_rbg(self, ax=None, show_plot=False, r=3, b=4, g=2):
+    def plot_rbg(self, ax=None, show_plot=False, r=3, b=4, g=2, title=''):
         """
         Thank you aaron you're a G whoever you are!
         https://gis.stackexchange.com/questions/306164/how-to-visualize-multiband-imagery-using-rasterio
 
         :return:
         """
-        if ax is None:
-            fig, ax = plt.subplots()
+
         # Convert to numpy arrays
         blue = self.image.read(b)
         red = self.image.read(r)
@@ -225,12 +212,7 @@ class Image(Remsenso):
         # Stack bands
         nrg = np.dstack((blue_norm, red_norm, green_norm))
 
-        # View the color composite
-        ax.imshow(nrg)
-        ax.set_title(f'{self.name}')
-        if show_plot:
-            plt.show()
-        return ax
+        return self.vis.plot_img(nrg, ax=ax, show_plot=show_plot, title=title)
 
     def check_roi(self, roi):
         """
@@ -266,8 +248,7 @@ class Image(Remsenso):
         :param show_plot
         :return:
         """
-        if ax is None:
-            fig, ax = plt.subplots()
+
         # Convert to numpy arrays
         img_bands = []
         for b in bands:
@@ -277,15 +258,9 @@ class Image(Remsenso):
 
         # Stack bands
         nrg = np.dstack(img_bands)
+        return self.vis.plot_img(nrg, ax=ax, show_plot=show_plot, title=title)
 
-        # View the color composite
-        ax.imshow(nrg)
-        ax.set_title(f'{title}')
-        if show_plot:
-            plt.show()
-        return ax
-
-    def plot(self, band: int, ax=None, show_plot=True, downsample=None):
+    def plot(self, band: int, downsample=None, roi=None, ax=None, show_plot=True, title=''):
         """
         Plot specific bands.
 
@@ -295,8 +270,12 @@ class Image(Remsenso):
         :return: ax
         """
         # Plot the first band
-        band1 = self.image.read(band)
-        return self.plot_idx(band1, ax, show_plot, downsample)
+        ds = self.image.read(band)
+        if roi:
+            ds = ds[roi['y1']:roi['y2'], roi['x1']:roi['x2']]
+        if downsample:
+            ds = ds[::downsample, ::downsample]
+        return self.vis.plot_img(ds, ax=ax, show_plot=show_plot, title=title)
 
     def load_image(self, image_path=None, plot=False, normalise_bands=False):
         """
@@ -389,3 +368,35 @@ class Image(Remsenso):
         new_dataset.write(red_norm, 2)
         new_dataset.write(green_norm, 3)
         new_dataset.close()
+
+
+def get_values_for_location(image, lat, lon, bands_indices):
+    # Gets all values, i.e. all bands, and all indicies
+    y, x = image.image.index(lat, lon)
+    # Now get all bands
+    row = []
+    for b in bands_indices:
+        row.append(b[x, y])
+    return row
+
+def get_values_for_xy(x, y, bands_indices):
+    # Gets all values, i.e. all bands, and all indicies
+    # Now get all bands
+    row = []
+    for b in bands_indices:
+        row.append(b[x, y])
+    return row
+
+def mask_values(index, lower_bound, upper_bound):
+    """
+    Mask the image based on the index passed (for example NDVI).
+    Make a multiplier i.e. 0 and 1s where it is above the threshold otherwise have nothing.
+
+    :param index:
+    :param index_cutoff:
+    :return:
+    """
+    # Convert pixels to 0 if we have a mask, not sure if this is the best way to do it...
+    mask = np.ma.masked_less_equal(index, upper_bound)
+    mask = np.ma.masked_greater_equal(mask.data*mask.mask, lower_bound)
+    return mask.mask*1.0

@@ -31,3 +31,5 @@ from remseno.image import *
 from remseno.ml import *
 from remseno.ood import *
 from remseno.downloader import *
+from remseno.vis import *
+from remseno.indices import *
