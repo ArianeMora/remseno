@@ -370,14 +370,29 @@ class Image(Remsenso):
         new_dataset.close()
 
 
-def get_values_for_location(image, lat, lon, bands_indices):
-    # Gets all values, i.e. all bands, and all indicies
-    y, x = image.image.index(lat, lon)
-    # Now get all bands
-    row = []
-    for b in bands_indices:
-        row.append(b[x, y])
-    return row
+def get_features_for_tree(lat, lon, img, bands=[1, 2, 3, 4, 5, 6, 7, 8]):
+    image_bands = []
+    for band in bands:
+        image_bands.append(img.image.read(band))
+
+    nitian, ndvi, sr, tvi, gi, gndvi, pri, osavi, tcari, redge, redge2, siredge, normg, schl, schlcar = get_all_planetscope(
+        img.image)
+    info_cols = image_bands + [nitian, ndvi, sr, tvi, gi, gndvi, pri, osavi, tcari, redge, redge2, siredge, normg, schl,
+                               schlcar]
+    return get_values_for_location(o, lat, lon, info_cols)
+
+
+def get_features_for_xy(y, x, img, bands=[1, 2, 3, 4, 5, 6, 7, 8]):
+    image_bands = []
+    for band in bands:
+        image_bands.append(img.image.read(band))
+
+    nitian, ndvi, sr, tvi, gi, gndvi, pri, osavi, tcari, redge, redge2, siredge, normg, schl, schlcar = get_all_planetscope(
+        img.image)
+    info_cols = image_bands + [nitian, ndvi, sr, tvi, gi, gndvi, pri, osavi, tcari, redge, redge2, siredge, normg, schl,
+                               schlcar]
+    return get_values_for_xy(y, x, info_cols)
+
 
 def get_values_for_xy(x, y, bands_indices):
     # Gets all values, i.e. all bands, and all indicies
