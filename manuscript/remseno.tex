@@ -1,0 +1,723 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ELIFE ARTICLE TEMPLATE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% PREAMBLE
+\documentclass[9pt,lineno]{elife}
+% Use the onehalfspacing option for 1.5 line spacing
+% Use the doublespacing option for 2.0 line spacing
+% Please note that these options may affect formatting.
+% Additionally, the use of the \newcommand function should be limited.
+
+\usepackage{lipsum} % Required to insert dummy text
+\usepackage[version=4]{mhchem}
+\usepackage{siunitx}
+\DeclareSIUnit\Molar{M}
+\usepackage{mathtools,array}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ARTICLE SETUP
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{remseno: an open source package to predict tree species with a quality control and reproducibility focus}
+
+% Author list & order TBD.
+% Authors: Ariane, Gorde, Merry, Kati, Phil Townsend, Felix, Arindam Banerjee, Adam Stewert,
+\author[1,2*]{Ariane Mora}
+\author[1,2]{Gordana Kaplan}
+\author[1\authfn{2}]{Katalin Csilléry}
+\author[2,3\authfn{2}]{Meredith C Schuman}
+\affil[1]{Evolutionary genetics group, Swiss Federal Research Institute for Forest, Snow and Landscape research WSL, Zürcherstrasse 111, 8903 Birmensdorf, Switzerland}
+\affil[2]{Department of Geography, University of Zurich, Winterthurerstrasse 190, CH-8057 Zürich, Switzerland}
+\affil[3]{Department of Chemistry, University of Zurich, Winterthurerstrasse 190, CH-8057 Zürich, Switzerland}
+% Corresponding author list TBD.
+\corr{ariane.n.mora@gmail.com}{}
+
+\contrib[\authfn{2}]{These authors also contributed equally to this work}
+
+%\presentadd[\authfn{3}]{Department, Institute, Country}
+%\presentadd[\authfn{4}]{Department, Institute, Country}
+% \presentadd[\authfn{5}]{eLife Sciences editorial Office, eLife Sciences, Cambridge, United Kingdom}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Similar and good articles taht we were trying to do the style based on
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009180
+% https://elifesciences.org/articles/62922
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ARTICLE START
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Relevant journals:
+% Nature Ecology and Evolution (IF 19): https://www.nature.com/natecolevol/
+% Science Advances: 14.136 https://www.science.org/journal/sciadv
+% PNAS IF 12.779: https://www.pnas.org/author-center/submitting-your-manuscript#article-types
+% Nature communications Earth and Environment (IF 7.2) https://www.nature.com/commsenv/ (something similar, https://www.nature.com/articles/s43247-023-00830-5, https://www.nature.com/articles/s43247-023-00692-x)
+% Ecology letters: IF 11 https://onlinelibrary.wiley.com/journal/14610248
+% Elife: 8 https://elifesciences.org/about/ (similar article deepForest was published here)
+% Journal of applied ecology IF 6.89: https://besjournals.onlinelibrary.wiley.com/journal/13652664
+% Plos Computational biology: IF 4.779, (another similar one) https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009180
+% IEEE Geoscience and Remote Sensing Letters (5.343) 5 pages: https://ieeexplore.ieee.org/xpl/RecentIssue.jsp?punumber=8859
+% Remote sensing letters: 2.8 https://www.tandfonline.com/action/journalInformation?show=journalMetrics&journalCode=trsl20
+% Remote sensing: https://arxiv.org/pdf/2002.00580.pdf
+
+
+\begin{document}
+
+
+\maketitle
+
+
+\begin{abstract} % 150 words for elife
+With the increased precision and availability of remote sensing data, predicting tree species across whole forests is an important part of forest research and management.   While there is a large corpus of research reporting classification between tree species, few papers provide code, data, and quality control or reproducibility metrics.  We developed remseno, a python package for predicting tree species using remote sensing data. Remseno enables researchers to predict individual tree species based on tree coordinates using UAV and satellite data, on both RBG and hyperspectral imagery.  We validate our pipeline on two use cases, predicting between pine and red cedar in a drone orthomosaic, and predicting ten classes of strands using hyperspectral satellite data. In addition to predicting between species, the aim for this package is to be extended by other researchers, provide a format for sharing pre-trained models, and standardise methods for testing new tree species prediction algorithms by providing benchmark data.
+
+\end{abstract}
+
+
+\section{Introduction}
+Over the past 400 million years trees have evolved to cover almost all regions of the globe (\cite{Xu_Berry_Stein_Wang_Tang_Fu_2017}), with over 73,000 species today thriving across diverse ecosystems (\cite{Cazzolla_2022}). These prehistoric organisms have weathered many climatic shifts, however, their natural capacity to adapt is challenged by extreme weather and human induced climate change. Identifying which species can adapt and those that cannot is essential in forest management practices, in particular when we consider interventions such as hybridisation and assisted migration. Tree species identification provides an opportunity to monitor forest biodiversity and assess ecological change. Thus, to identify individual tree species, or the species composition of a forest accurately and efficiently - in terms of time and money, is important to ensure we develop future proof and climate resilient forests.
+
+The capacity to precisely gather information on the spatial distribution of tree species has major ecological value for the management and study of forests (\cite{Fassnacht_2016}). Forest observations are performed on myriad scales, each with unique challenges, biases, limitations, and associated costs, with field surveys most commonly used to measure species composition in forest ecosystems. However, reliable data acquisition is challenging for individual tree species across broad regions using conventional methods due to the cost and time associated with field surveys. Therefore, more rapid and efficient methods need to be developed. Given how long field studies have been conducted however, there exists large databases that exist that have consolidated these features from millions of trees, such as Tallo (\cite{Jucker_Loubota_2022}).
+%Recently leaf level hyperspectral imaging data has been reported to accurately distinguish between closely related species presenting the possibility that hyperspectral satellite data could be used to detect individual tree species differences even between phenotypically similar species (\cite{DOdorico_2023}). % Need more citations on this
+
+Remote sensing of forests present a cost effective mode of data acquisition, and have been used in divers forest management applications, including tree extraction (\cite{Ocer_2020}) and tree species classification (\cite{Descals_Szantoi_Meijaard_Sutikno_Rindanata_Wich_2019, Ma_Liu_Liu_Zeng_Li_2021}).  Recently, machine learning (ML) have become favoured approaches to classify such data. Unmanned Aerial Vehicles (UAV) with LiDAR are the most common remote sensing data used for tree species classification, given the data has centimetre level resolution, morphological differences between trees can be extracted . Furthermore, UAVs can be fitted with specific cameras, thus high resolution hyperspectral can be generated across forests. However, UAV data is costly from a fiscal and time standpoint and requires access to equipment, and physical location as such, open source satellite data present an opportunity for large scale species classification. While open source satellite spatial resolution previously presented a challenge for individual tree classification, newer deployments, such as PlanetScope \cite{planetscope} provide three meter resolution with hyperspectral bands, presenting a viable open source dataset for individual species classification.
+
+While it is common to apply machine learning to classify individual trees at the species level using UAV data, papers providing data or reproducible benchmarks are scarce. Fassnacht \textit{et al}. reviewed tree species classification studies using remote sensing data and found the majority of researchers used moderate or high spatial resolution satellite imagery, or Airborne LiDAR systems (\cite{Fassnacht_2016}). They concluded that the most approaches were not developed to account for heterogeneous ecological conditions, and often used reference data biased toward favourable conditions. While there are a large number of tree classification studies published, the exchange of the datasets is limited. For future studies, Fassnacht \textit{et al.} recommended datasets be made publicly available to enable meaningful comparisons, and investigate and quantify the drivers for classification errors. Despite Fassnacht's suggestion in 2016, the vast majority of authors producing tree classification papers still neglect to share data.
+
+Alternatives to individual researchers sharing data are large consortia, such as the National Science Foundation's National Ecological Observatory Network (NEON) (\cite{NEON}) provide an essential resource. Recently, authors have used this data to create and share predictions of crown delineation (\cite{Weinstein_Marconi_Zare_Bohlman_Graves_Singh_White_2020, Weinstein_Marconi_Bohlman_Zare_Singh_Graves_White_2021}), using a deep learning algorithm (\cite{Weinstein_White_2020}) and also providing a benchmark package in R for others to benchmark new algorithms (\cite{Weinstein_Graves_Marconi_Singh_Zare_Stewart_Bohlman_White_2021}).
+
+
+Machine learning applied to satellite and UAV data is a major part of the remote sensing toolkit when performing classification tasks. However, in all fields we have only really seen the improvements of machine learning classifiers when large, diverse datasets are available for researchers and engineers to use as benchmarks. We developed a benchmark dataset, and accompanying package to provide computational ecological researchers with a baseline to develop methods from and to test how effectively their models perform on heterogeneous datasets for multispectral data from planetscope and RGB drone footage. The package is open source and designed to be extended by researchers to add in other datasets and or classifiers. We also highlight limitations and challenges with different predictions. In short, we developed an open source package designed with a focus on reproducibility and interpretability for individual tree pixel level prediction using hyperspectral remote sensing data. We describe the four components of our package and highlight two use-cases using publicly available data, finally describing limitations of the approach and future applications. The code and data are available and accompanied by tutorials and videos.
+
+%Gorde - read the Ben g Weinstein MDPI paper for similarities and discussion...
+
+\section{Results}
+\subsection{The Impediment of Data/Code Sharing in Tree Species Prediction}
+%\subsection{Lack of data and code sharing a challenge to creating generalisable tree species prediction methods}
+%The Impediment of Data/Code Sharing in Tree Species Prediction
+Given the explosion of literature on ML algorithms since the Fassnacht \textit{et. al} review in 2016, we investigated whether the landscape of data sharing for tree species prediction had improved. We searched for papers using the keywords "remote sensing,'' "tree species'', and "UAV'', resulting in 151 publications in the past three years (2023, 2022, and 2021). We use two inclusion criteria: 1) data were UAV orthophotos or high-resolution satellite imagery (less than five metres), 2) classification was performed between at least two species. Twenty papers passed the criteria, surprisingly, only three papers provided code, and only one with data using public data from NEON. We requested data and code from the authors whom indicated it was available on request, however, we did not receive any answer. Given zero papers provided UAV data, we also searched the Dryad database, \url{https://datadryad.org/}, for any deposited data, searching for the term, UAV. This returned 49 results, which were further filtered based on inclusion criteria 2. We found two relevant studies, the first, the data were corrupted, we contacted the authors, and their response is ..., and the second we included as our benchmarking dataset for our study.
+
+We found two relevant studies, \url{https://datadryad.org/stash/dataset/doi:10.5061/dryad.3ffbg79j2} and \url{https://datadryad.org/stash/dataset/doi:10.5061/dryad.9s4mw6mgh}. The first, the data were corrupted, we contacted the authors, and their response is in supplemental table X, and the second we included as our benchmarking dataset in the following chapter.
+
+
+\begin{table}[]
+\begin{fullwidth}
+\begin{tabular}{p{1cm}p{4cm}p{4cm}p{4cm}p{1cm}p{2cm}}
+& \textbf{Paper}  & \textbf{Data}  & \textbf{Code}   & \textbf{ACC}   & \textbf{ML}   \\
+\hline
+1  & \cite{Khan_Dil_Misbah_Orakzai_Alam_Kaleem_2023}    & available  & \url{https://github.com/ZeeshanKaleem/YOLOV5-Large-vs-YOLOV7.git}       & 90               & yolo                \\
+2  & \cite{Kuzmin_2021}                                                                                                                  & NA                                                                            & /                                                                                                                               & 83.3             & svm                 \\
+3  & \cite{Scholl_Cattau_Joseph_Balch_2020}                                                                                                                 & NEON                  & \url{https://github.com/earthlab/neon-veg}                                                                                            & 69               & RF                  \\
+4  & \cite{Moura_deOliveira_Sanquetta_Bastos_Mohan_Corte_2021}                                                                                                                  & NA                                                                            & The faster\_rcnn\_inception\_v2\_pets model was utilized from this package, which was modified to train target species samples. & 91.8             & CNN                 \\
+5  & \cite{decid}                                                                                      & NA                                                                            & NA                                                                                                                              & 78               & k-means/ RF         \\
+6  & \cite{Sothe_Dalponte_Almeida_Schimalski_Lima_Liesenberg_Miyoshi_Tommaselli_2019}                                                                                                                 & NA                                                                            & NA                                                                                                                              & 72               & SVM                 \\
+7  & \cite{Schiefer_Kattenborn_Frick_Frey_Schall_Koch_Schmidtlein_2020}                                                                                         & NA                                                                            & NA                                                                                                                              & 89               & CNN                 \\
+8  & \cite{Egli_Hopke_2020}                                                                                                               & NA                                                                            & NA                                                                                                                              & 88               & CNN                 \\
+9  & \cite{Zhang_Zhou_Wang_Tan_Cui_Huang_Wang_Zhang_2022}                                                                                                                  & Upon request                                                                  & No                                                                                                                              & 80               & Improved Mask R-CNN \\
+10 & \cite{Sivanandam_Lucieer_2022}                                                                                                                & NA                                                                            & NA                                                                                                                              & 84               & DeepForest          \\
+11 & \cite{Huang_Li_Fan_Chen_Yang_Lu_Sheng_Pu_Zhu_2023}                                                                                                                    & Upon request                                                                  & NA                                                                                                                              & 94               & AMDNet              \\
+12 & \url{https://www.frontiersin.org/articles/10.3389/fevo.2023.1139458/full}                                                                                        & Upon request                                                                  & NA                                                                                                                              &                  & SAM                 \\
+13 & Liu, H. (2023) & NA                                                                            & NA                                                                                                                              & 88               & RF                  \\
+14 & \url{https://www.mdpi.com/2072-4292/15/9/2301}                                                                                                                    & NA                                                                            & NA                                                                                                                              & 88               & DenseNet            \\
+15 & \url{https://www.mdpi.com/2072-4292/13/2/216}                                                                                                                     & The data presented in this study are available in the supplementary material. & NA                                                                                                                              & 90               & RF                  \\
+16 & \url{https://www.mdpi.com/2072-4292/11/17/1982}                                                                                                                   & NA                                                                            & NA                                                                                                                              & \textgreater{}84 & Various             \\
+17 & \url{https://www.mdpi.com/2072-4292/15/4/1000}                                                                                                                    & NA                                                                            & NA                                                                                                                              & 80               & RF                  \\
+18 & Caiyan Chen %\url{https://www.tandfonline.com/doi/epdf/10.1080/15481603.2021.1974275}
+& \url{https://github.com/remotesensinglab}                                           & NA                                                                                                                              & 55-80            & RF/SVM              \\
+19 & \url{https://www.mdpi.com/2072-4292/15/11/2942}                                                                                                                   & Upon request                                                                  & NA                                                                                                                              & 99               & CNN                 \\
+20 & \cite{Wang_Zhou_Hu_Tang_Ge_Smith_Awada_Shi_2021}                                                                                                                              &                                                                               &                                                                                                                                 &                  &
+\end{tabular}
+\end{fullwidth}
+\end{table}
+
+
+\begin{figure}
+
+\begin{fullwidth}
+\includegraphics[width=0.95\linewidth]{figs/remseno_pipeline.png}
+\caption{X}
+\label{fig:pipeline}
+\end{fullwidth}
+\end{figure}
+
+Of the surveyed literature, only work by \cite{Wang_Zhou_Hu_Tang_Ge_Smith_Awada_Shi_2021} \textit{et al.} provided easily accessible data. However, when running quality control on the data, it became evident that there was a potential confounding effect of the orthomosaic, with pine being blurry thus making the dataset a non ideal benchmark, Supplemental Figure X.
+% \cite{Wang_Zhou_Hu_Tang_Ge_Smith_Awada_Shi_2021} \textit{et al.} investigated the optimal spatial resolution to perform semantic segmentation of woody species using UAV data in North Platte, Nebraska, finding that pre-trained models performed best however that performance decreased with decreasing spatial resolution (\cite{Wang_Zhou_Hu_Tang_Ge_Smith_Awada_Shi_2021}). We downloaded the orthomosaic from the Dryad data repository, \url{https://datadryad.org/stash/dataset/doi:10.5061/dryad.9s4mw6mgh} and annotated the three classes referenced in the paper, namely, redcedar (Juniperus virginiana), pine ( Pinus ponderosa, Pinus sylvestris), and others (Fraxinus pennsylvanica and hackberry Celtis occidentalis) to individual trees using QGis (\textbf{CITE QGIS}).
+% To ensure relevance to our study, we implemented a two-step screening process. Firstly, during the initial reading, we excluded protocol papers that did not employ similar data to ours, specifically UAV orthophotos or high-resolution satellite imagery. Additionally, we disregarded papers concentrated solely on single-tree classification. These exclusion criteria led us to a refined selection of 20 scientific papers.
+
+% However, upon further examination, we discovered that seventeen of these papers did not provide the necessary data for replication of their analyses (Table X). Consequently, we were unable to replicate their findings or incorporate them into our research.
+
+
+\begin{figure}
+\begin{fullwidth}
+\begin{center}
+\includegraphics[width=0.8\linewidth]{figs/Figure1.png}
+\caption{
+        \textbf{A.} Overview of the locations of sites with shared species between Tallo and NEON database.
+        \textbf{B.} Genera in Tallo database for each of the individual trees for species which have at least 100 observations.
+        \textbf{C.} Genera of NEON, again for species which have at least 100 observations.
+}
+\end{center}
+\label{fig:data}
+\end{fullwidth}
+\end{figure}
+
+
+\subsection{A dataset of coordinates that covers individual tree species across the United States}
+Extensive work has been conducted by Weinstein \textit{et al}, specifically with respect to creating datasets and validation for tree segmentation using a combination of RBG and LiDAR remote sensing data, however, there exists currently no validation framework for individual tree species using multispectral remote sensing data. We build on the work by Weinstein \textit{et al.}, and create a dataset with accompanying benchmark for individual tree species classification using remote sensing data. As we were unable to find publicly available remote sensing multispectral data, we use data from PlanetScope, which has eight bands at the frequencies, see Table \ref{tab:tabindices}. The next challenge is to identify species at the individual tree level, for this, one ideally has highly precise genomic coordinates for a large corpus of trees. The Tallo database (\cite{Jucker_Loubota_2022}), provides coordinates for over 60,000 plots across the globe, while National Ecological Observation Network (NEON), provides coordinates for individual tree species from field observation studies. NEON additionally hosts RBG high resolution drone imagery and LiDAR data, see Figure \ref{fig:data} A, for an overview of the distribution of the plots and trees. We combine the more extensive network of plots from Tallo with the exact tree coordinates from NEON, building a subset of shared species between the two datasets, see Figure \ref{fig:fig2} B,C.
+
+
+\begin{figure}
+\begin{fullwidth}
+\begin{center}
+\includegraphics[width=0.75\linewidth]{figs/Figure2.png}
+\caption{
+        \textbf{A.} RBG bands from the multispectral  data downloaded from PlanetScope for nine locations in the Tallo database. Each plot is a 500m$^2$ plot labelled by the species.
+        \textbf{B.} Normalized difference vegetation index (NDVI) multiplied by the mask for each band (1-8) and followed by example indices. The mask is sequentially applied with band 2 having masked values from both band 1 and band 2. Masking is performed based on five manually annotated trees from the plot.
+        \textbf{C.} Example RBG plots as part of the NEON dataset, the size depends on the bounding box of the trees, thus depends on the site. Red points are the species, \textit{Fagus grandifolia}, blue points are \textit{Acer rubrum}.
+        \textbf{D}. Principle Component projection for the eight bands and 15 calculated indices for all pixels that passed the masking thresholds in all Tallo plots. Species are annotated at the plot level.
+        \textbf{E}. Principle Component projection for the eight bands and 15 calculated indices for only pixels that were annotated as specific trees using field surveys from NEON.
+}
+\label{fig:fig2}
+\end{center}
+\end{fullwidth}
+\end{figure}
+
+\subsection{Training dataset creation using satellite data with weak annotation}
+For each of the Tallo locations with homogeneous forests, see Methods for details, 500m$^2$ bounding boxes were downloaded, see Figure \ref{fig:fig2} A for an example of plots for several species. For 113 plots, the locations were searched and coordinates for five trees were hand annotated to create a small training sample, which was used to then create masks based on the bands, and indices (see Table \ref{tab:tabindices}) for each of the plots. A mask was applied by filtering pixels in each plot that did not fall within a standard deviation from the mean, see Figure \ref{fig:fig2} B, for an example of a plot with the index filters sequentially applied. Pixels that were not filtered were then labelled as the species of the forest (despite only homogeneous forests being selected, observation from the google maps imagery indicates this is not always the case), and the pixel's eight bands along with the 15 spectral indices were used as the feature vector. For the NEON dataset, the pixel value for the provided coordinate was selected, an example of four plots with two species is shown in Figure \ref{fig:fig2} C. The principle components of the feature vector for the training data indicate that some of the variation across the spectral bands is explained by species, see Figure \ref{fig:fig2} D. There is less separation in the sparser validation dataset, however, some variation may still be explained by species, see Figure \ref{fig:fig3}.
+
+% H otrees werehand anno w much do I need to go into the dataset creation here I wonder?
+
+\subsection{Training a baseline machine learning classifier}
+We were interested in also providing researchers with the capacity to ``input'' different machine learning classifiers and designed our framework to specifically measure generalisability and species bias. We measure generalisability of an approach as how well the trained classifier (trained on a homogeneous, single species forest) is able to generalise to a mixed, unseen forest (the NEON validation dataset). We report the results of several commonly applied ML algorithms from the sklearn package (CITE), specifically, a random forest, support vector machine, and a neural network, the main figures use a random forest classifier with other classifiers in the Supplemental Information (ToDo).
+
+
+
+\begin{table}[]
+\begin{center}
+\begin{tabular}{llll}
+\textbf{Genus}       & \textbf{Species}   & \textbf{No. Pixels NEON} & \textbf{No. pixels Tallo} \\
+
+Acer        & saccharum & 337             & 28473            \\
+Juglans     & nigra     & 174             & 28699            \\
+Picea       & abies     & 5               & 46254            \\
+Pinus       & strobus   & 54              & 28561            \\
+Pinus       & echinata  & 21              & 28547            \\
+Pinus       & taeda     & 15              & 28160            \\
+Pseudotsuga & menziesii & 650             & 25785            \\
+Quercus     & nigra     & 66              & 28609            \\
+Quercus     & velutina  & 18              & 28123            \\
+Tilia       & americana & 35              & 28164            \\
+Ulmus       & americana & 230             & 28172
+\end{tabular}
+\label{tab:speciesnum}
+\caption{
+        The number of pixels (\textit{i.e.} trees) for each species in the Tallo (training and test) and NEON (validation) datasets.
+}
+\label{tab:tabML}
+\end{center}
+\end{table}
+
+A train and test dataset were created from the Tallo pixels, herein referred to as ``training'', and a validation dataset using the field observations from the NEON pixels, herein referred to as ``validation''. As the optical satellite imagery may have cloud cover, or be otherwise hindered, only a subset of all species were identified across both datasets, with the numbers of pixels recorded in each dataset reported in Table \ref{tab:speciesnum}. To make a balanced training set, 1000 random samples from the Tallo training dataset for each species were used to train a machine learning classifier, using 30\% held out test set, for which the results are reported in Figure \ref{fig:fig3}, see Methods for details about the classifier. Given many studies report comparisons between two species, we performed pairwise comparisons across the species. While the classifier was accurately able to perform a two class classification on the homogeneous forests from Tallo, whether the pretrained classifier was able to generalise to the mixed field annotated NEON forest varied dramatically depending on which two species were compared, Figure \ref{fig:fig3} A. This bias is exemplified in a three class (comparing all permutations of three species combinations), and four class problem respectively, Figure \ref{fig:fig3} A. Despite the variable performance, we find that for some species a pretrained classifier is able to generalise, in particular in the two class problem, see Figure \ref{fig:fig3} B, where there is perfect performance between \textit{Picea Abies} and \textit{Quercus Velutina}. High performance was not achievable between any of the three or four class problems, with the highest balanced accuracy reported as 75.84\% for \textit{Picea Abies} and \textit{Quercus Velutina} and \textit{Pinus Strobus}. Furthermore, the ability to generalise was very poor for the 11 species classification, Figure \ref{fig:fig3} B, with almost all species classified incorrectly.
+
+% Need to ensure none of the pixels in NEON were in Tallo.
+% Another limitation is that I haven't included the OOD classifeir or a class that doesn't belong... yet
+
+
+\begin{figure}
+\begin{fullwidth}
+\begin{center}
+\includegraphics[width=0.75\linewidth]{figs/Figure3.png}
+\caption{
+        \textbf{A.} Balanced accuracy scores for all permutations of species predictions, using all 11 species as in Table X. All are significant with $p<0.0001$ between the training (Tallo pixels, training and test set), and validation (NEON field annotated sites).
+        \textbf{B.} True positive and false positives as confusion matrices from the training (held out test set from Tallo), and the validation (unseen field labelled trees from NEON), for the well performing species combinations, for 2 classes and 3 classes (100\%, 2 class, 72.84\% 3 class balanced accuracy respectively), and all 11 species.
+}
+\label{fig:fig3}
+\end{center}
+\end{fullwidth}
+\end{figure}
+
+\subsection{A GitHub database for researchers to deposit tree coordinate data}
+- Add in a section about a GitHub database and how that would work.
+
+\section{Methods and Materials}
+
+\subsection{Classification data}
+The classification data is the primary user supplied input. It is a series of locations (latitude and longitude) for individual trees. It is expected that these coordinates are at the centre of the crown. The data should also have an individual tree identifier and class name (\textit{i.e. species}).
+
+\subsection{Imaging data}
+The imaging data can either be drone, or satellite data, however, can be generalised to any image saved in \textit{.tif} format. Drone data can be either a pre-processed orthomosaic, or a folder with images from a drone flight. If it is the later, we wrote a wrapper around OpenDroneMap (ODM) to generate the orthomosaic. Satellite data are expected to have sufficient resolution to detect individual trees, and our recommendation is to use PlanetScope data. We provide an API to downloads regions of interest from PlanetScope using the coordinates and a distance in metre's of interest and prefilter desires (\textit{e.g.} azimuth, cloud cover \textit{etc}). Downloaded satellite data are automatically labelled and annotated with the names in the coordinate file. Coordinates from the classification data are translated using \textbf{PyProj} to the coordinate system of the imaging data. Imaging data are read and manipulated using \textbf{Rasterio}.
+
+% \subsection{Out of distribution classifier}
+% Before building a classification between the annotated trees, an out of distribution (OOD) classifier is developed. We use a variational autoencoder (VAE) to build a distribution based on the signal of all annotated points in the dataset. A VAE functions by compressing a feature set to a lower dimensional space. The loss function of a VAE has two components, the first being a user defined loss term for the ``image'', for this we use mean squared error, Equation \ref{eq:mse}. The second component is a regularisation term which fits the latent embedding to an isotropic Gaussian distribution (\textit{i.e.} $\mu=0, \sigma=1$), for this we use mean maximum discrepancy (MMD), Equation \ref{eq:mmd}.
+
+% \begin{equation}\label{eq:mse}
+%     \mathcal{D}_{MSE} = \sum_{i=1}^{N}(x_i'-x_i)^2
+% \end{equation}
+
+% Where $x_i$ is feature $i $value for pixel $x$ in input image,  $x_i'$ is feature $i$ value for pixel $x$ in reconstructed image, and $N$ is the number of features. Note in \ref{eq:mse}, features may be pixel values from various bands \textit{or} pre-calculated indices such as NDVI.
+
+% \begin{equation}\label{eq:mmd}
+% 	\mathcal{D}_{MMD}(q||p) = \mathbb{E}_{p(z),p(z')}[k(z,z')] - 2\mathbb{E}_{q(z)p(z')}[k(z,z')] + \mathbb{E}_{q(z),q(z')}[k(z,z')]
+% \end{equation}
+
+% Using Equation \ref{eq:mmd}, $\mathcal{D}_{MMD} = 0$ if and only if $p = q$. Where $q$ is the posterior distribution, $p$ is the prior distribution % DOUBLE CHECK THESE.
+% $z'$, is the learnt embedding, $z$ is an isotropic Gaussian, $k$ is a kernel function, in this case, a Gaussian kernel. \\
+
+% Given the VAE produces a distribution of the data, any new data that doesn't fit the expected pixel values (\textit{i.e.} is out of distribution for the classes of interest), will fall outside of the normal range. We define an outlier as is a value in the latent space that is $-2\sigma \leq \mu \geq +2\sigma$. Pixels classified as OOD and not considered for further classification. The VAE is a generative machine learning model it requires sufficient data and it is up to the user to ensure that the number of training points is greater than the number of features to compress ($N>>p$). As such, when there are minimal training data, a region around each tree is included to increase the models' learning capacity. Finally, for very large feature spaces the OOD classifier may not work as effectively given the extreme compression (\textit{i.e.} by default to a single dimension), in these cases we recommend using more than a single latent node.
+
+% Add in nodes as a feature and enable the user to select the feature set
+\subsection{Pre-filter with indices}
+By default, NDVI is used as a pre-filter for pixel classification, namely a mask is generated and pixels falling below a value of $0.5$ NDVI are omitted from classification. This is performed again as a quality control step, however, can be omitted. The index and cutoff values can be changed by the user.
+Several studies have demonstrated improved classification results by incorporating various spectral indices. Based on the relevant literature, we have included several indices in our research using PlanetScope Super Dove data. The selection of these indices was limited to the spectral bands available in the PlanetScope Super Dove data, which offers eight spectral bands with a spatial resolution of 3 m. In addition to the four bands in the regular PlanetScope data, the Super Dove data includes four additional bands in the coastal blue, green, yellow, and red edge wavelengths (see Table X - PlanetScope bands). Our objective was to choose vegetation indices that capture different vegetation variables, particularly related to biochemical and physical properties such as nitrogen, chlorophyll, and structure. However, most of the nitrogen indices in the literature were based on shortwave infrared or red-edge parts of the spectrum. Therefore, we were only able to modify one nitrogen index to align with the bands available in the PlanetScope Super Dove data. Consequently, we adapted all the other indices to the Super Dove data by utilizing the closest available bands (see Table X - spectral indices used in this study).
+
+\begin{table}[]
+\begin{fullwidth}
+\begin{center}
+\begin{tabular}{p{3cm}p{2cm}p{4cm}p{1cm}}
+\textbf{Index name }                                               & \textbf{Abbreviation} & \textbf{Formula}                                                      & \textbf{Reference}      \\
+Nitrogen Index                                            & NI\_Tian     & Red Edge / (Red Edge + Blue)                                     & Modified  from \\
+Normalized Difference Vegetation   Index                  & NDVI         & (NIR – Red) / (NIR + Red)                                        & .              \\
+Simple ratio                                              & SR           & NIR / Red                                                        & .              \\
+Triangular Vegetation Index                               & TVI          & 0.5(120(Red Edge – Green) – 200(Green    + Red)                  & .              \\
+Green Index                                               & GI           & (Green – Red)                                                    & .              \\
+Green NDVI                                                & GNDVI        & (NIR – Green) / (NIR + Green)                                    & .              \\
+Photochemical Reflectance Index                           & PRI          & (Green I – Green) / (Green I + Green)                            & .              \\
+Optimization of soil-adjusted   vegetation indices        & OSAVI        & (NIR - Red) / (NIR + Red + 0.16)                                 & .              \\
+Transformed Chlorophyll Absorption   in Reflectance Index & TCARI        & 3(((Red edge - Red) – 0.2(Red edge – Green)) x (Red edge – Red)) & .              \\
+Red edge reflectance parameter I                          & RERP         & NIR / (Green x Red   edge)                                       & .              \\
+Red edge reflectance parameter II                         & RERP2        & Red / (Green x Red   edge)                                       & .              \\
+Simple Ratio RERP                                         & SIRERP       & Red / Red edge                                                   &                \\
+Normalized Greenness                                      & Norm G       & Green/(Red + Green + Blue)                                       &                \\
+Leaf Chlorophyll Index                                    & LCI          & (NIR – Red edge) / (NIR  + Red)                                  & .              \\
+Chlorophyll Carotenoids Index                             & ChCI         & (Green I – Red) / (Green I + Red)                                & .
+\end{tabular}
+\caption{
+        Spectral indices used in this study.
+}
+\label{tab:tabindices}
+\end{center}
+\end{fullwidth}
+\end{table}
+
+\begin{table}[]
+\begin{center}
+
+\begin{tabular}{llll}
+\textbf{Band} & \textbf{Name}         &\textbf{ Central Wavelength} \\
+1    & Coastal Blue & 443                 &                  \\
+2    & Blue         & 490                 &                  \\
+3    & Green   I    & 531                 &                  \\
+4    & Green        & 565                 &                  \\
+5    & Yellow       & 610                 &                  \\
+6    & Red          & 665                 &                  \\
+7    & Red Edge     & 705                 &                  \\
+8    & NIR          & 865                 &
+\end{tabular}
+\caption{
+        PlanetScope SuperDove bands.
+}
+\label{tab:tabML}
+\end{center}
+\end{table}
+
+\subsection{Classification between species}
+We use standard models in \textbf{sci-kit learn} to provide researchers with flexibility in model choice. Classification is performed at the pixel level, however we provide functionality for a bounding circle from a central coordinate. In the case of using a bounding circle this is recommended when a pixel size is less than the size of a crown as in the case of high quality drone footage. When using a bounding circle predictions are summarised and provided as an overall classification accuracy with an uncertainty interval.
+
+\subsection{Quality control}
+We provide a number of quality control metrics such that the researcher is ``kept in the loop''. In each stage there are default plots created, as illustrated in Figure \ref{fig:pipeline}.
+%In the pre-filtering step, the distribution of the data are reported across the bands of the image for all trees of interest.
+
+% \subsection{Classification of encroaching Junipers on grassland using UAV RGB data}
+% We downloaded data from \url{https://datadryad.org/stash/dataset/doi:10.5061/dryad.9s4mw6mgh} on 22$^{nd}$ June 2023. The stitched orthomosaic was loaded into QGis and points were annotated as a vector to tree species using the ground truth reference provided.
+
+% DATE OF THE DRONE FOOTAGE
+
+% \subsubsection{OOD classifier}
+% We tested two OOD classifiers, a VAE with concatenated feature set with MMD and MSE loss, a mmd weight of $0.001$, batch normalisation, Adam optimsier with default parameters and a loss rate of 0.001. The VAE had a single layer, of 16 for encoding and decoding and a latent embedding of 8 nodes. The image was down-sampled by a factor of 20 and a tile of 1mx1m was used as each training. The number of training data were increased by using a offset of X \textbf{CHECK THIS} and randomly permuting the dimensions around the centre to get a shuffled pixel area. Decodings were visualised compared with the encodings using the down-sampled space. A second configuration was used using a Convolutional VAE, this had two encoding and decoding dimensions with a kernel size of 3, stride of 2, and 32, 64 filters, Adam optimiser was used and again a MMD and MSE loss function. Both runs used a batch size of 100, with 6800 training points, run for 100 epochs with early stopping enabled.
+%https://rdrr.io/github/weecology/NeonTreeEvaluation_package/
+
+\subsubsection{Species classification}
+To generate training data for the classification model we used a bounding circle of 8px, and plotted these for each of the trees. 20\% of the trees were held out for validation (\textit{i.e.} none of their pixels were included in training), leaving X trees for testing from the classes: \textbf{RESULTS HERE}. Each band was normalised (between 0 and 1) prior to training, and a feature set for each pixel was simply three values: RBG. The training dataset had \textbf{RESULT} training points. A support vector machine was used to classify the samples with the following configuration.
+
+\subsection{Classification of species from hyperspectral satellite data}
+Data from Tallo were downloaded on 22$^{nd}$ June 2023, (\cite{Jucker_Fischer_Chave_Coomes_Caspersen_Ali_Loubota_2022}), containing the tree species and location for 498,838 trees, given the tree locations were at the strand level the data were grouped by latitude and longitude, then for each location (61,856 unique latitude and longitudes), we identified the different divisions, families, genus's and species within this location. There were 52306 sites that were homogeneous at the species level, and 9,550 sites with more than one species. We selected the homogeneous set and filtered to identify species that were highly represented in the database, with greater than 500 observations. A $500m^2$ bounding box was calculated around each of these strand locations and PlanetScope was searched for an image of this region, filtering for the summer months, in northern hemisphere plots (GTE 2023-02-31T00:00:00.000Z to 2022-12-01T00:00:00.000Z) and southern hemisphere plots (GTE, 2022-06-01T00:00:00.000Z to 2023-08-31T00:00:00.000Z). Of the image IDs returned, the ``best'' image was taken, this was chosen to be the one with the least cloud cover, and both a sun and satellite azimuth of 90 degrees calculated as:
+
+\begin{equation}
+\min\big[\frac{c + (\frac{1}{2}||s| - 90| + ||a|-90|}{2}\big]
+\end{equation}
+
+Images which overlapped were filtered to create geographically distinct locations leading to 271 images covering each a 500$m^2$ of homogeneous tree species. These were downloaded from PlanetScope on $27^{th}$ June 2023.
+
+\subsubsection{Training dataset creation from Tallo}
+Given precise coordinates of individual trees are not provided by Tallo we made a training set by hand randomly selecting three locations for each species (where three locations existed) then searching google maps for these locations, and randomly picking five trees on google maps within the surrounding area (KML file is provided as supplemental material). The locations of these trees were then added to the excel file providing up to 15 training points for each species, with 13 species in total. The 15 points covered three areas, of usually many more distinct locations. Under the assumption then that any ``trees'' within each locations was from the same species (using the assumption that the papers only reported one species), we used the minimum and maximum values for each band and index to filter each image of the same species and create ``training'' points for each species.
+%An OOD classifier was developed using these ``training'' data with the default parameters except for a 2D latent embedding, each species was then projected onto this.
+
+\subsubsection{ML classifier from hyperspectral data}
+Using the training data created in the previous section, we create a feature vector comprising of all bands, and all indicies for each pixel, resulting in XXX features, for XX training data for XX species. These were first normalised to the ``feature'' level between 0 and 1, and visualised as PCA. The feature vector was then used as input for a machine learning classifier, were we used a suport vector machine from the sklearn (CITE SKLEARN) package with XXXX and balanced accuracy loss. The results were plotted as a confusion matrix, AUROC curve and also different forms of accuracy were returned. The trained classifier was then saved.
+
+\subsubsection{Validation using NEON tree coordinates}
+To validate the pretrained classifier from the hyperspectral data we used the coordinates from individual trees available at the NEON database (\cite{NEON}). iven the naming of species in NEON did not appear to be consistent with Tallo or provided family, or genus, we used the same species name annotation process as Tallo, namely, we used the R function TPL from the Taxonstand package (CITE) to annotate species, family, and genus. The same process for downloading the satellite data were used, however, rather than selecting a 500m$^2$ area around the coordinates, we downloaded a bounding box that included all tree locations annotated. This resulted in 70 images with a range of plot sizes, species, and covered various locations around the USA. Given these were larger locations, there were more clipped files and cloud cover, as such we manually selected 14 of the highest quality plots. The filtration process was preformed to also remove plots with few points (\textit{i.e.} so trees did not only fall on the perimeter), and also filtered for RBG visibility. This left 14 plots for validation with XXX points and YYY species. The species that were not included in training were ???? and they were classified as ``other''. The prefilter and OOD classifiers that were pretrained were applied to the NEON trees, filtering out X many pixels, and Y many trees respectively. Then the pretrained classifier was used with the same feature vector and accuracy was reported.
+
+
+\section{Discussion}
+
+- Newfoundland often had very poor resolution of google images\\
+- Other forests had been cutdown\\
+- Many had lots of tree types\\
+- When a point landed in open area the closest forest was chosen which could be wrong...\\
+- Could have been picking dead trees rather than it being winter (32.8	-83.18) adding problems\\
+- Designed for species which are similar and may only differ in spectral bands as opposed to phenological characteristics \\
+- Limitation is that generalising across technologies can be hard - i.e. between drone and other datasets, or between planet scope and other open source satelitte images.\\
+- discussion of only using american forests for training\\
+- Not a focus on morphological traits (i.e. why we don't use a convolutional neural network) rather focusing on phenological traits, i.e. the trees hyperspectral bands. I THINK THIS DISTINCTION IS IMPORTANT DON'T FORGET!
+
+% Searched for hyperspectral forest tree and was unable to find a single dataset...
+% How we are going to solve it ~ 1 para
+
+% Perhaps add in the RGB of NEON dataset.
+
+% Now just talk about the figure...
+% A figure on how the forests for training:
+% \begin{itemize}
+%     \item Number of trees in each class
+%     \item hyper-spectral data (PCA to show composition) confusion plot and feature importance diagram (test a few methods)
+%     \item Picture of drone of forest and also of the satellite with each of the trees annotated on it and classification
+%     \item show their annotation compared with ours at the pixel level and the out of distribution values
+% \end{itemize}
+% Do three figures one for each site, two for supps 1 for main.
+
+% \subsection{Large scale classification using PlanetScope satellite data}
+% We use data from Tallo to create a dataset of
+% \begin{itemize}
+%     \item Number of sites in each class
+%     \item Maybe combine with NEOM (i.e. get the reported bounding box for one of the sites and then use these for classification) maybe combine the RGB and the planetscope data... or use the RGB to show what the trees were (who knows) need to test
+%     \item OOD classification
+%     \item hyper-spectral data (PCA to show composition) confusion plot and feature importance diagram (test a few methods)
+%     \item Picture of satellite data of forest
+%     \item show their annotation compared with ours at the pixel level and the out of distribution values
+% \end{itemize}
+% Do three figures one for each site, two for supps 1 for main.
+
+% \subsection{Annotating species in NEON datasets using DeepForest segmentations}
+
+% - Results from each classifier
+
+% Next we test a number of different ``hardnesses'' of problems, namely, how well can we predict different numbers of species, what happens when classes are imbalanced, and how the model handles ``unseen'' species.
+
+% - Tests across different qualities of data for validation (i.e. using also the other data, or ones with snow...)
+
+% - Also include validation of different trees using the data from NEON for RBG to show them side by side.
+
+% - Use validation also of different neon plots side by side (i.e. pick some for training and some for validation)
+
+% In surveyed recent publications using hyperspectral data, data is usually unavailable (\cite{Sothe_DeAlmeida_Schimalski_La, Hartling_Sagan_Maimaitijiang_2021, Jiang_Johansen_Stanschewski_Wellman_Mousa_Fiene_Asiry_Tester_McCabe_2022, Dersch_2023, Kuzmin_2021, Sothe_Feitosa, Qin_Zhou_Yao_Wang_2022, Modzelewska_2020}), or data is no longer available (\cite{Zhang_Zhao_Zhang_2020}), or data is available only on request (\cite{Zhong_Lin_Liu_Ma_Liu_Cao_Wang_Ren_2022, Quan_Li_Hao_Liu_Wang_2023, Modzelewska2021}). As such there is a lack of open source tree classification datasets for researchers to test new methodological advancements. In addition to data, code is required to ensure reproducibility, in particular for machine learning approaches, the aforementioned studies also lacked code, however code was available from (\cite{Chen_Wei_Yao_Chen_Zhang_2022} and \cite{Keski_2021}) yet without accompanying data.
+
+%This has applications when considering detecting differences in small clades of trees, identifying hybridisation, and small subspecies. We show how with as few as X different tree species can be identified and highlight limitations and strengths of the proposed approach.
+
+% \textbf{Novelty}
+% \begin{itemize}
+%     \item Data: Drone data of the forests is new (spectral data and genetic data are old).
+%     \item Software: Method for integrating drone and satellite data for beech tree prediction is new.
+%     \item Knowledge: Financial implications and prediction of composition change across Europe.
+% \end{itemize}
+% that uses temporal satellite data to predict beech species and hybridisation across Europe.
+% We train our approach on a beech clade in France and validate this on a second forest in Switzerland.
+% We show that the method is able to predict dominant species in the tested forests and use this to make predictions about forests across Switzerland.
+% Our findings also extend to hybrid predictions using satellite data in Bulgaria however require future validation.
+% Our integration of drone and satellite data shows how these technologies can be used to extend existing knowledge of trees and make predictions on even very similar tree species.
+
+% Other data options:
+% Weedmap: https://projects.asl.ethz.ch/datasets/doku.php?id=weedmap:remotesensing2018weedmap
+% Palm tree detection: https://wingtra.com/mapping-drone-wingtraone/aerial-map-types/data-sets-and-maps/ *https://ageagle.com/data-set/palm-tree-detection-using-rededge-p/
+% micasense: https://ageagle.com/resources/?options=forestry
+
+% https://datadryad.org/stash/dataset/doi:10.5061/dryad.9s4mw6mgh: https://www.mdpi.com/2072-4292/13/10/1975 dataset on trees
+% Dataset of pheology annual grasses: https://datadryad.org/stash/dataset/doi:10.5061/dryad.3ffbg79j2
+% Usage notes
+% The following data is included in the dataset:
+% (1) Raw_Images: 68 raw images (DJI_0xxx.png) and 4 cropped segments from the orthomosaic (DJI_990x.png) in a size of 4608 by 3456 pixels.
+% (2) Label_Images: labelled images with four classes, redcedar (pixel value as 1), defoliation (pixel value as 2), pine (pixel value as 3), and others (pixel value as 0)
+% (3) Stitch_Image: stitched orthomosaic.
+
+% https://zenodo.org/record/3765872#.X2J1zZNKjOQ
+% example paper style: https://raw.githubusercontent.com/elifesciences/enhanced-preprints-data/master/data/88623/v1/88623-v1.pdf
+% https://elifesciences.org/articles/72518
+% https://elifesciences.org/articles/62922
+% https://zenodo.org/record/3765872#.X2J1zZNKjOQ
+
+% Another data option: https://gfbinitiative.net/data/
+
+% Aim for elife since it will be a bit more general probably have a generic background:
+
+% \subsection{The importance of understanding forest composition and hybridisation to protect against climate}
+% - Set the tone and motivation for this research and why it is important
+% - maybe bring in the energy impact and other important aspects of the forests in reaching climate targets
+
+% \subsection{Beech trees and their economic importance in Europe}
+% - Could we do an input/output analysis to predict how the dieoff of beech trees will affect the economy?
+% - I/O background for prediction of loss to economy
+% - i.e. any paper that says how much beech trees will be damaged/die in response to climate change (is there data on this from 2022 since that was a hot year?)
+
+% \subsection{Existing approaches using satellite data}
+% - Papers on super resolution and integrating drone and satellite data
+
+% \subsection{Satellite and drone integration methods for predicting tree species}
+% - Are there any methods that exist that are similar?
+
+% \subsection{Literature on semi supervised learning}
+% - Remember the paper I sent to Ebony from the ML learning series talks
+% - Bring in the integration aspect (VAE?)
+% - Look at classifiers with uncertainty estimates
+% \subsection{Results from prediction on the forests introduced}
+% Results for the three forests (for training and holding out).
+% \begin{itemize}
+%     \item Results from each forest, results using each forest trained on the other ones
+%     \item Comparison to using hyper-spectral data alone
+% \end{itemize}
+
+% \subsection{Results from extending to all of Europe}
+% Do the same thing but across Europe.
+% \begin{itemize}
+%     \item Look at the estimations of the different subspecies
+%     \item Pick some forests where we know the general composition to check what the accuracy is of these (i.e. using forests with just one known tree type - beech and not beech)
+% \end{itemize}
+
+% \subsection{Application example: I/O shows cost overall of the predicted impact of beech }
+% Do the same thing but across Europe.
+% \begin{itemize}
+%     \item Look at the estimations of the different subspecies
+%     \item Pick some forests where we know the general composition to check what the accuracy is of these (i.e. using forests with just one known tree type - beech and not beech)
+%     \item Use I/O to quantify the economic impact of tree dieoff if the trend continues
+%     \item Use pretrained classifier which predicts dead forest percentage and map this forward. Focus only on the geolocations that are also beech trees.
+% \end{itemize}
+
+% \begin{table}[bt]
+% \caption{\label{tab:example}Automobile Land Speed Records (GR 5-10).}
+% % Use "S" column identifier to align on decimal point
+% \begin{tabular}{S l l l r}
+% \toprule
+% {Speed (mph)} & Driver          & Car                        & Engine    & Date     \\
+% \midrule
+% 407.447     & Craig Breedlove & Spirit of America          & GE J47    & 8/5/63   \\
+% 413.199     & Tom Green       & Wingfoot Express           & WE J46    & 10/2/64  \\
+% 434.22      & Art Arfons      & Green Monster              & GE J79    & 10/5/64  \\
+% 468.719     & Craig Breedlove & Spirit of America          & GE J79    & 10/13/64 \\
+% 526.277     & Craig Breedlove & Spirit of America          & GE J79    & 10/15/65 \\
+% 536.712     & Art Arfons      & Green Monster              & GE J79    & 10/27/65 \\
+% 555.127     & Craig Breedlove & Spirit of America, Sonic 1 & GE J79    & 11/2/65  \\
+% 576.553     & Art Arfons      & Green Monster              & GE J79    & 11/7/65  \\
+% 600.601     & Craig Breedlove & Spirit of America, Sonic 1 & GE J79    & 11/15/65 \\
+% 622.407     & Gary Gabelich   & Blue Flame                 & Rocket    & 10/23/70 \\
+% 633.468     & Richard Noble   & Thrust 2                   & RR RG 146 & 10/4/83  \\
+% 763.035     & Andy Green      & Thrust SSC                 & RR Spey   & 10/15/97\\
+% \bottomrule
+% \end{tabular}
+
+% \medskip
+% Source: \url{https://www.sedl.org/afterschool/toolkits/science/pdf/ast_sci_data_tables_sample.pdf}
+
+% \tabledata{This is a description of a data source.}\label{tabdata:first}
+% \tablesrccode{This is a description of a source code.}\label{tabsrccode:first}
+
+% \end{table}
+
+
+
+%\subsection{Figures and Tables}
+
+
+For a half-width figure or table with text wrapping around it, use
+
+\bibliography{remseno}
+
+% https://github.com/weecology/NeonTreeEvaluation_package/tree/master has a dataset that does similar things
+% \begin{verbatim}
+% \begin{wrapfigure}{l}{.46\textwidth}
+%   \includegraphics[width=\hsize]{...}
+%   \caption{...}\label{...}
+% \end{wrapfigure}
+% \end{verbatim}
+% %
+% as in \FIG{halfwidth}. For tables:
+
+% \begin{verbatim}
+% \begin{wraptable}{l}{.46\textwidth}{
+%   \begin{tabular}{...}
+%   ...
+%   \end{tabular}}
+%   \caption{...}\label{...}
+% \end{wraptable}
+% \end{verbatim}
+
+% \begin{description}
+% \item[Figures] \texttt{fig:}, e.g.~\verb|\label{fig:view}|
+% \item[Figure Supplements] \texttt{figsupp:}, e.g.~\verb|\label{figsupp:sf1}|\\
+% (we'll assume \texttt{figsupp:sf1} is a figure supplement of \texttt{fig:view} in our example)
+% \item[Figure source data] \texttt{figdata:}, e.g.~\verb|\label{figdata:first}|
+% \item[Figure source code] \texttt{figsrccode:},
+% \item[Videos] \texttt{video:}, e.g.~\verb|\label{video:mv1}|
+% \item[Video source data] \texttt{viddata:}, e.g.~\verb|\label{figdata:first}|
+% \item[Video source code] \texttt{vidsrccode:},
+% \item[Video supplements] \texttt{videosupp:}, e.g.~\verb|\label{videosupp:sv1}|
+% \item[Tables] \texttt{tab:}, e.g.~\verb|\label{tab:example}|
+% \item[Table source data] \texttt{tabdata:}, e.g.~\verb|\label{tabdata:first}|
+% \item[Table source code] \texttt{tabsrccode:},e.g.~\verb|\label{tabsrccode:first}|
+% \item[Equations] \texttt{eq:}, e.g.~\verb|\label{eq:CLT}|
+% \item[Boxes] \texttt{box:}, e.g.~\verb|\label{box:simple}|
+% \end{description}
+% %
+% you can then use the convenience commands \verb|\FIG{view}|, \verb|\FIGSUPP[view]{sf1}|, \verb|\TABLE{example}|, \verb|\EQ{CLT}|, \verb|\BOX{simple}|, \verb|\FIGDATA[view]{first}|, \verb|\FIGSRCCODE[view]{first}|,
+% \verb|\TABLEDATA[example]{first}|, \verb|\TABLESRCCODE[example]{first}|,
+% \verb|\VIDEO{mv1}|,
+% \verb|\VIDEODATA[mv1]{second}|,
+% \verb|\VIDEOSRCCODE[mv1]{first}|,
+% and also \verb|{\VIDEOSUPP}[view]{sv1}| \emph{without} the label prefixes, to generate cross-references
+% \FIG{view}, \FIGSUPP[view]{sf1},
+% \TABLE{example}, \EQ{CLT},
+% \BOX{simple},
+% \FIGDATA[view]{first},
+% \FIGSRCCODE[view]{first},
+% \TABLEDATA[example]{first},
+% \TABLESRCCODE[example]{first},
+% \VIDEO{mv1},
+% \VIDEODATA[mv1]{second},
+% \VIDEOSRCCODE[mv1]{first},
+% and \VIDEOSUPP[view]{sv1}.
+% Alternatively, use \verb|\autoref| with the full label, e.g.~\autoref{first:app} (although this may not work correctly for figures and tables in the appendices or boxes nor supplements at present).
+
+% \begin{wrapfigure}{l}{.45\textwidth}
+% \includegraphics[width=\hsize]{frog}
+% \caption{A half-columnwidth image using wrapfigure, to be used sparingly. Note that using a wrapfigure before a sectional heading, near other floats or page boundaries is not recommended, as it may cause interesting layout issues. Use the optional argument to wrapfigure to control how many lines of text should be set half-width alongside it.}
+% \label{fig:halfwidth}
+% \end{wrapfigure}
+
+% Some filler text to sit alongside the half-width figure. \lipsum[1] \lipsum[2]
+
+% Really wide figures or tables, that take up the entire page, including the gutter space: use \verb|\begin{fullwidth}...\end{fullwidth}| as in \FIG{fullwidth}. And sometimes you may want to use feature boxes like \BOX{simple}.
+
+% \begin{figure}
+% \begin{fullwidth}
+% \includegraphics[width=0.95\linewidth]{elife-18156-fig2}
+% \caption{A very wide figure that takes up the entire page, including the gutter space. A very wide figure that takes up the entire page, including the gutter space. A very wide figure that takes up the entire page, including the gutter space. A very wide figure that takes up the entire page, including the gutter space. A very wide figure that takes up the entire page, including the gutter space. A very wide figure that takes up the entire page, including the gutter space.}
+% \label{fig:fullwidth}
+% \figsupp{There is no limit on the number of Figure Supplements for any one primary figure. Each figure supplement should be clearly labelled, Figure 1--Figure Supplement 1, Figure 1--Figure Supplement 2, Figure 2--Figure Supplement 1 and so on, and have a short title (and optional legend). Figure Supplements should be referred to in the legend of the associated primary figure, and should also be listed at the end of the article text file.}{\includegraphics[width=5cm]{frog}}
+% \end{fullwidth}
+% \end{figure}
+
+% \subsection{Citations}
+
+% LaTeX formats citations and references automatically using the bibliography records in your .bib file, which you can edit via the project menu. Use the \verb|\cite| command for an inline citation, like \cite{Aivazian917}, and the \verb|\citep| command for a citation in parentheses \citep{Aivazian917}. The LaTeX template uses a slightly-modified Vancouver bibliography style. If your manuscript is accepted, the eLife production team will re-format the references into the final published form. \emph{It is not necessary to attempt to format the reference list yourself to mirror the final published form.} Please also remember to \textbf{delete the line} \verb|\nocite{*}| in the template just before \verb|\bibliography{...}|; otherwise \emph{all} entries from your .bib file will be listed!
+
+% \begin{featurebox}
+% \caption{This is an example feature box}
+% \label{box:simple}
+% This is a feature box. It floats!
+% \medskip
+
+% \includegraphics[width=5cm]{example-image}
+% \featurefig{`Figure' and `table' captions in feature boxes should be entered with \texttt{\textbackslash featurefig} and \texttt{\textbackslash featuretable}. They're not really floats.}
+
+% \lipsum[1]
+% \end{featurebox}
+
+% \subsection{Mathematics}
+
+% \LaTeX{} is great at typesetting mathematics $abc$. Let $X_1, X_2, \ldots, X_n$ be a sequence of independent and identically distributed random variables with $\text{E}[X_i] = \mu$ and $\text{Var}[X_i] = \sigma^2 < \infty$, and let
+% \begin{equation}
+% \label{eq:CLT}
+% S_n = \frac{X_1 + X_2 + \cdots + X_n}{n}
+%       = \frac{1}{n}\sum_{i}^{n} X_i
+% \end{equation}
+% denote their mean. Then as $n$ approaches infinity, the random variables $\sqrt{n}(S_n - \mu)$ converge in distribution to a normal $\mathcal{N}(0, \sigma^2)$.
+
+% \lipsum[3]
+
+% \begin{figure}
+% \includegraphics[width=\linewidth]{elife-13214-fig7}
+% \caption{A text-width example.}
+% \label{fig:view}
+% %% If the optional argument in the square brackets is "none", then the caption *will not appear in the main figure at all* and only the full caption will appear under the supplementary figure at the end of the manuscript.
+% %
+% \figsupp[Shorter caption for main text.]
+% {This is a supplementary figure's full caption, which will be used at the end of the manuscript.
+%   \figsuppdata{A data source; see \url{https://doi.org/xxx}}
+%   \figsuppdata{Another data source.}
+%   \figsuppsrccode{And the source code.}}
+% {\includegraphics[width=6cm]{frog}}\label{figsupp:sf1}
+% %
+% %
+% \figsupp{This is another supplementary figure.}
+% {\includegraphics[width=6cm]{frog}}
+% %
+% %
+% \videosupp{This is a description of a video supplement.}\label{videosupp:sv1}
+% \figdata{This is a description of a data source.}\label{figdata:first}
+% \figdata{This is another description of a data source.}\label{figdata:second}
+% \figsrccode{This is a description of a source code.}\label{figsrccode:first}
+% \end{figure}
+
+% \subsection{Other Chemistry Niceties}
+
+% You can use commands from the \texttt{mhchem} and \texttt{siunitx} packages. For example: \ce{C32H64NO7S}; \SI{5}{\micro\metre}; \SI{30}{\degreeCelsius}; \SI{5e-17}{\Molar}
+
+% \subsection{Lists}
+
+% You can make lists with automatic numbering \dots
+
+% \begin{enumerate}
+% \item Like this,
+% \item and like this.
+% \end{enumerate}
+% \dots or bullet points \dots
+% \begin{itemize}
+% \item Like this,
+% \item and like this.
+% \end{itemize}
+% \dots or with words and descriptions \dots
+% \begin{description}
+% \item[Word] Definition
+% \item[Concept] Explanation
+% \item[Idea] Text
+% \end{description}
+
+% Some filler text, because empty templates look really poorly. \lipsum[1]
+
+
+% \section{Acknowledgments}
+
+% Additional information can be given in the template, such as to not include funder information in the acknowledgments section.
+
+% \nocite{*} % This command displays all refs in the bib file. PLEASE DELETE IT BEFORE YOU SUBMIT YOUR MANUSCRIPT!
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%% APPENDICES
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \appendix
+% \begin{appendixbox}
+% \label{first:app}
+% \section{Firstly}
+% \lipsum[1]
+
+% %% Sadly, we can't use floats in the appendix boxes. So they don't "float", but use \captionof{figure}{...} and \captionof{table}{...} to get them properly caption.
+% \begin{center}
+% \includegraphics[width=\linewidth,height=7cm]{frog}
+% \captionof{figure}{This is a figure in the appendix}
+% \end{center}
+
+% \section{Secondly}
+
+% \lipsum[5-8]
+
+% \begin{center}
+% \includegraphics[width=\linewidth,height=7cm]{frog}
+% \captionof{figure}{This is a figure in the appendix}
+% \end{center}
+
+%\end{appendixbox}
+
+% \begin{appendixbox}
+% \includegraphics[width=\linewidth,height=7cm]{frog}
+% \captionof{figure}{This is a figure in the appendix}
+% \end{appendixbox}
+\end{document}
