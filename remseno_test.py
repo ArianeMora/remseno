@@ -26,7 +26,7 @@ bands = [o.image.read(b) for b in [1, 2, 3, 4, 5, 6, 7, 8]]
 
 ml = ML()
 df = ml.train_ml(clf, image=o, coords=c, image_bands=bands, validation_percent=20, test_percent=20,
-                max_pixel_padding=2, normalise=False)
+                max_pixel_padding=1, normalise=False)
 df.to_csv('test_pred.csv')
 
 
