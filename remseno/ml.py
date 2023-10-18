@@ -82,6 +82,39 @@ class ML:
         train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.label_col, coords.x_col, coords.y_col] + band_labels)
         return train_df, band_labels
 
+    def build_train_df_from_indexs(self, df, indexs, coords, labels, max_pixel_padding=2,
+                       band_labels=None, normalise=False):
+        """
+        Build a training dataframe from a list of images! NOTE: this assumes that all the images have the
+        same coord system!
+
+        :param image:
+        :param coords:
+        :param image_bands:
+        :param max_pixel_padding:
+        :param band_labels:
+        :return:
+        """
+        xs = df[coords.x_col].values
+        ys = df[coords.y_col].values
+        rows = []
+        # Image bands is something like below, we leave it up to the user to define i.e. could be indicies
+        classes = df[coords.label_col].values
+        band_labels = labels
+        for i, tid in enumerate(df[coords.id_col].values):
+            data_row = [tid, classes[i], xs[i], ys[i]]
+            for image in indexs:
+                y, x = image.index(xs[i], ys[i])
+                # Now for each bounding area make a training point
+                bb = coords.build_circle_from_centre_point(x, y, max_pixel_padding)
+                for xy in bb:
+                    # We now build the feature set which is
+                    data_row.append(image.image[xy[1], xy[0]])
+            rows.append(data_row)
+        # Now create a dataframe from this
+        train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.label_col, coords.x_col, coords.y_col] + band_labels)
+        return train_df, band_labels
+
     def validate(self, clf, image, coords, image_bands, max_pixel_padding=2, normalise=False):
         """
         Validate a pretrained classifier

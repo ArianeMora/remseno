@@ -31,7 +31,7 @@ class TestML(TestRemsenso):
         clf = svm.SVC(C=8.0, kernel='poly', class_weight='balanced')
         bands = [o1.image.read(b) for b in [1, 2, 3]]
         # Also add an index
-        bands.append(get_ndvi(o1, 1, 2))
+        bands.append(get_ndvi(o1.image, 1, 2))
         df = ml.train_ml(clf, image=o1, coords=c, image_bands=bands, validation_percent=20, test_percent=20,
                          max_pixel_padding=2, normalise=False)
         df.to_csv('test_pred.csv')
