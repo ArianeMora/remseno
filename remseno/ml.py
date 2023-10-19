@@ -82,8 +82,7 @@ class ML:
         train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.label_col, coords.x_col, coords.y_col] + band_labels)
         return train_df, band_labels
 
-    def build_train_df_from_indexs(self, df, indexs, coords, labels, max_pixel_padding=2,
-                       band_labels=None, normalise=False):
+    def build_train_df_from_indexs(self, df, images, coords, max_pixel_padding=2):
         """
         Build a training dataframe from a list of images! NOTE: this assumes that all the images have the
         same coord system!
@@ -100,20 +99,25 @@ class ML:
         rows = []
         # Image bands is something like below, we leave it up to the user to define i.e. could be indicies
         classes = df[coords.label_col].values
-        band_labels = labels
         for i, tid in enumerate(df[coords.id_col].values):
-            data_row = [tid, classes[i], xs[i], ys[i]]
-            for image in indexs:
-                y, x = image.index(xs[i], ys[i])
+            # We now build the feature set which is
+            data_row = [tid, classes[i]]
+            for image_values in images:
+                image = image_values['image']
+                y, x = image.image.index(xs[i], ys[i])
                 # Now for each bounding area make a training point
                 bb = coords.build_circle_from_centre_point(x, y, max_pixel_padding)
                 for xy in bb:
-                    # We now build the feature set which is
-                    data_row.append(image.image[xy[1], xy[0]])
+                    for label, image_band in image_values['indexs'].items():
+                        # Here we are extracting the feature i.e. the value from the image bands we're interested in
+                        data_row.append(image_band[xy[1], xy[0]])
             rows.append(data_row)
         # Now create a dataframe from this
-        train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.label_col, coords.x_col, coords.y_col] + band_labels)
-        return train_df, band_labels
+        train_df = pd.DataFrame(rows)
+        cols = [coords.id_col, coords.label_col] + [c for i, c in enumerate(train_df.columns) if i > 1]
+        print(cols)
+        train_df.columns = cols
+        return train_df, [c for i, c in enumerate(train_df.columns) if i > 1]
 
     def validate(self, clf, image, coords, image_bands, max_pixel_padding=2, normalise=False):
         """
@@ -167,6 +171,64 @@ class ML:
         df['predicted_label'] = pred
         self.clf = clf  # Save to the model
         return self.get_overall_tree_pred(coords.df, coords, df, df)
+
+    def train_ml_on_multiple_images(self, clf, images, coords, validation_percent=20, test_percent=20,
+                 max_pixel_padding=2, normalise=False):
+        """
+        Train a ML classifier for multiple images with different indicies.
+
+        :return: VAE or something
+        """
+        # Build training DF from the coords
+        # First we want to hold some trees out, so we select a random sample from the dataset
+        valid_df = coords.df.sample(math.ceil(len(coords.df) * (validation_percent / 100)))
+        # Now use the other as the dataframe
+        df = coords.df[~coords.df[coords.id_col].isin(list(valid_df[coords.id_col].values))]
+        df, training_cols = self.build_train_df_from_indexs(df, images, coords)
+        self.train_df = df
+        self.valid_df, training_cols = self.build_train_df_from_indexs(valid_df, images, coords)
+
+        X = df[training_cols].values
+        y = df[coords.label_col]
+        # Train model
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_percent / 100,
+                                                            random_state=18)
+        # Get the pixels from the orthomosaic
+        clf = clf.fit(X_train, y_train)
+        clf.score(X_test, y_test)
+        test_score = clf.score(X_test, y_test)
+        y_pred = clf.predict(X_test)
+        print(test_score, y_pred)
+        # Then also do the final ones in the validation df i.e. unseen trees
+        X = self.valid_df[training_cols].values
+        y = self.valid_df[coords.label_col]
+        print(clf.score(X, y))
+        print(balanced_accuracy_score(y, clf.predict(X)))
+        print(len(self.valid_df), len(self.train_df))
+        # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
+        # Solve for w3 (z)
+        Y = y
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        # For each class add as a point
+        for yval in set(Y):
+            ax.plot3D(X[Y == yval, 0], X[Y == yval, 1], X[Y == yval, 2], 'o')
+        plt.show()
+
+        # Also do a decision tree classifier
+        pred = clf.predict(X_test)
+        cm = confusion_matrix(y_test, pred, labels=clf.classes_)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
+        disp.plot()
+        plt.show()
+
+        # Add the predicted label in for each
+        self.train_df['predicted_label'] = clf.predict(self.train_df[training_cols].values)
+        self.valid_df['predicted_label'] = clf.predict(self.valid_df[training_cols].values)
+        self.clf = clf  # Save to the model
+        return self.get_overall_tree_pred(coords.df, coords, self.train_df, self.valid_df)
+
 
     def train_ml(self, clf, image, coords, image_bands, validation_percent=20, test_percent=20,
                  max_pixel_padding=2, normalise=False):
