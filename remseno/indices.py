@@ -14,7 +14,7 @@ from remseno import *
 import numpy as np
 
 
-def get_all_planetscope(img):
+def get_all_planetscope(img: object) -> object:
     nitian = get_nitian(image=img, r_edge=7, blue_band=2)
     ndvi = get_ndvi(image=img, red_band=6, nir_band=8)
     sr = get_sr(image=img, red_band=6, nir_band=8)
