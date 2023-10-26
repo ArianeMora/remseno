@@ -16,19 +16,22 @@ o.load_image(image_path=drone_ortho)
 
 c.transform_coords(tree_coords="EPSG:4326", image_coords="EPSG:4326", plot=True)
 
-c.plot_on_image(image=o, band=1)
-o.plot_multi_bands(bands=[1, 2, 3], downsample=10, show_plot=True)
+#c.plot_on_image(image=o, band=1)
+#o.plot_multi_bands(bands=[1, 2, 3], downsample=100, show_plot=True)
 
 
-from sklearn.tree import DecisionTreeClassifier
-clf = DecisionTreeClassifier(random_state=0)
+#from sklearn.tree import DecisionTreeClassifier
+#clf = DecisionTreeClassifier(random_state=0)
 
-bands = [o.image.read(b) for b in [1, 2, 3, 4]]
+from sklearn.ensemble import RandomForestClassifier
+clf = RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1, random_state=42)
+
+bands = [o.image.read(b) for b in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]]
 
 ml = ML()
-df = ml.train_ml(clf, image=o, coords=c, image_bands=bands, validation_percent=30, test_percent=30,
-                max_pixel_padding=3, normalise=False)
-df.to_csv('test_pred.csv')
+df = ml.train_ml(clf, image=o, coords=c, image_bands=bands, validation_percent=25, test_percent=25,
+                max_pixel_padding=1, normalise=False)
+#df.to_csv('test_pred.csv')
 
 
 
