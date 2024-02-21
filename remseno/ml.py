@@ -146,9 +146,9 @@ class ML:
         # Train model
         test_score = clf.score(X, y)
         y_pred = clf.predict(X)
-        print(test_score, y_pred)
-        print(clf.score(X, y))
-        print(balanced_accuracy_score(y, clf.predict(X)))
+        print(f"test score {test_score}, {y_pred}")
+        print(f"clf score {clf.score(X, y)}")
+        print(f"balanced a s {balanced_accuracy_score(y, clf.predict(X))}")
         # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
         # Solve for w3 (z)
         z = lambda x, y: (-clf.intercept_[0] - clf.coef_[0][0] * x - clf.coef_[0][1] * y) / clf.coef_[0][2]
@@ -182,6 +182,7 @@ class ML:
         # Build training DF from the coords
         # First we want to hold some trees out, so we select a random sample from the dataset
         valid_df = coords.df.sample(math.ceil(len(coords.df) * (validation_percent / 100)))
+        print(f"{valid_df}")
         # Now use the other as the dataframe
         df = coords.df[~coords.df[coords.id_col].isin(list(valid_df[coords.id_col].values))]
         df, training_cols = self.build_train_df_from_indexs(df, images, coords)
@@ -198,12 +199,12 @@ class ML:
         clf.score(X_test, y_test)
         test_score = clf.score(X_test, y_test)
         y_pred = clf.predict(X_test)
-        print(test_score, y_pred)
+        print(f"test score {test_score}, {y_pred}")
         # Then also do the final ones in the validation df i.e. unseen trees
         X = self.valid_df[training_cols].values
         y = self.valid_df[coords.label_col]
-        print(clf.score(X, y))
-        print(balanced_accuracy_score(y, clf.predict(X)))
+        print(f"clf score {clf.score(X, y)}")
+        print(f"balanced score {balanced_accuracy_score(y, clf.predict(X))}")
         print(len(self.valid_df), len(self.train_df))
         # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
         # Solve for w3 (z)
@@ -258,12 +259,12 @@ class ML:
         clf.score(X_test, y_test)
         test_score = clf.score(X_test, y_test)
         y_pred = clf.predict(X_test)
-        print(test_score, y_pred)
+        print(f"test score = {test_score}, {y_pred}")
         # Then also do the final ones in the validation df i.e. unseen trees
         X = self.valid_df[training_cols].values
         y = self.valid_df[coords.label_col]
-        print(clf.score(X, y))
-        print(balanced_accuracy_score(y, clf.predict(X)))
+        print(f"clf={clf.score(X, y)}")
+        print(f"balanced= {balanced_accuracy_score(y, clf.predict(X))}")
         print(len(self.valid_df), len(self.train_df))
         # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
         # Solve for w3 (z)
@@ -331,7 +332,7 @@ class ML:
         id_value_map, correct, incorrect = self.group_results(valid_df, coords, correct, incorrect, id_value_map, 'valid')
         # Do the same for validation
         total_prob = correct / (correct + incorrect)
-        print(total_prob)
+        print(f"Overall Accuracy =  {total_prob}")
         preds = []
         pred_probs = []
         data_types = []
@@ -346,4 +347,33 @@ class ML:
         df['pred_probs'] = pred_probs
         df['data_type'] = data_types
         df['overall_pred'] = overall_pred
-        return df
+
+    def test_ml(self, clf, image, coords, image_bands, max_pixel_padding=2, normalise=False):
+        # Preprocess the testing image and coordinates
+        # Similar to the training phase, build the testing DataFrame
+        test_df, test_cols = self.build_train_df(coords.df, image, coords, image_bands,
+                                                     max_pixel_padding=max_pixel_padding, normalise=normalise)
+
+        # Extract the features and labels
+        X_test = test_df[test_cols].values
+        y_test = test_df[coords.label_col].values
+
+        # Predict using the trained classifier
+        y_pred = clf.predict(X_test)
+
+        # Calculate evaluation metrics
+        accuracy = balanced_accuracy_score(y_test, y_pred)
+        print(f"Testing Accuracy: {accuracy}")
+
+        # Display a confusion matrix
+        cm = confusion_matrix(y_test, y_pred, labels=np.unique(y_test))
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.unique(y_test))
+        disp.plot()
+        plt.show()
+
+        # Return the testing DataFrame with predictions for further analysis
+        test_df['predicted_label'] = y_pred
+        df = pd.DataFrame()
+
+
+        return df,test_df

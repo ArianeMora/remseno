@@ -71,24 +71,5 @@ ml = ML()
 df = ml.train_ml(clf, image=o, coords=c, image_bands=bands, validation_percent=30, test_percent=30,
                 max_pixel_padding=1, normalise=False)
 
+test_df = ml.test_ml(clf, image=o, coords=c, image_bands=bands, max_pixel_padding=1, normalise=False)
 #df.to_csv('test_pred.csv')
-
-# Feature importance
-importances = clf.feature_importances_
-indices = np.argsort(importances)[::-1]
-
-# Print the feature ranking
-print("Feature ranking:")
-for f in range(df.shape[1]):
-    print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
-
-# Plot the feature importances of the forest
-plt.figure()
-plt.title("Feature importances")
-# Ensure the lengths match for the x-axis and importances
-plt.bar(range(len(importances)), importances[indices], color="r", align="center")
-plt.xticks(range(len(importances)), indices)
-plt.xlim([-1, len(importances)])
-plt.show()
-
-
