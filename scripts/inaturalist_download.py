@@ -3,7 +3,7 @@ from remseno import *
 # Build the polygon
 data_dir = '../data/to_publish/'
 filename = f'{data_dir}inat_grouped_locations_image_ids.csv'
-meters = 30
+meters = 3
 
 c = Coords(f'{data_dir}inat_grouped_locations_image_ids.csv', x_col='longitude', y_col='latitude', label_col='family',
                    id_col='id', sep=',', class1='Angiosperm', class2='Gymnosperm', crs='EPSG:4326')
