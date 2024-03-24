@@ -173,7 +173,7 @@ class ML:
         return self.get_overall_tree_pred(coords.df, coords, df, df)
 
     def train_ml_on_multiple_images(self, clf, images, coords, validation_percent=20, test_percent=20,
-                 max_pixel_padding=2, normalise=False):
+                 max_pixel_padding=2, normalise=False, pretrained=False):
         """
         Train a ML classifier for multiple images with different indicies.
 
@@ -195,7 +195,9 @@ class ML:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_percent / 100,
                                                             random_state=42)
         # Get the pixels from the orthomosaic
-        clf = clf.fit(X_train, y_train)
+        if not pretrained:
+            clf = clf.fit(X_train, y_train)
+        # if it's already been trained we can just run it!
         clf.score(X_test, y_test)
         test_score = clf.score(X_test, y_test)
         y_pred = clf.predict(X_test)
@@ -375,3 +377,4 @@ class ML:
         df = pd.DataFrame()
 
         return df, test_df
+
