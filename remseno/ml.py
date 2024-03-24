@@ -37,7 +37,6 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 class ML:
 
     def __init__(self):
-        print('ML go brr')
         self.train_samples = None
         self.validation_df = None
         self.train_df = None
@@ -138,7 +137,8 @@ class ML:
         # Build training DF from the coords
         # First we want to hold some trees out, so we select a random sample from the dataset
         # Now use the other as the dataframe
-        df, training_cols = self.build_train_df(coords.df, image, coords, image_bands, max_pixel_padding=max_pixel_padding,
+        df, training_cols = self.build_train_df(coords.df, image, coords, image_bands,
+                                                max_pixel_padding=max_pixel_padding,
                                                 normalise=normalise)
 
         X = df[training_cols].values
@@ -229,7 +229,6 @@ class ML:
         self.valid_df['predicted_label'] = clf.predict(self.valid_df[training_cols].values)
         self.clf = clf  # Save to the model
         return self.get_overall_tree_pred(coords.df, coords, self.train_df, self.valid_df)
-
 
     def train_ml(self, clf, image, coords, image_bands, validation_percent=20, test_percent=20,
                  max_pixel_padding=2, normalise=False):
@@ -352,7 +351,7 @@ class ML:
         # Preprocess the testing image and coordinates
         # Similar to the training phase, build the testing DataFrame
         test_df, test_cols = self.build_train_df(coords.df, image, coords, image_bands,
-                                                     max_pixel_padding=max_pixel_padding, normalise=normalise)
+                                                 max_pixel_padding=max_pixel_padding, normalise=normalise)
 
         # Extract the features and labels
         X_test = test_df[test_cols].values
@@ -375,5 +374,4 @@ class ML:
         test_df['predicted_label'] = y_pred
         df = pd.DataFrame()
 
-
-        return df,test_df
+        return df, test_df

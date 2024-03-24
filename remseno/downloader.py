@@ -86,7 +86,7 @@ session = requests.Session()
 # Authenticate session with user name and password, pass in an empty string for the password
 session.auth = (PLANET_API_KEY, "")
 
-res = session.get(BASE_URL)
+res = '' #session.get(BASE_URL)
 
 
 def select_image_ids(filename, position, gte, max_cloud_cover=0.1, visible_percent=100):

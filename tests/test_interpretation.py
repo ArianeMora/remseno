@@ -14,11 +14,6 @@
 #    along with this program. If not, see <http://www.gnu.org/licenses/>.     #
 #                                                                             #
 ###############################################################################
-
-import shutil
-import tempfile
-import unittest
-
 from remseno.indices import *
 from tests.test_remseno import TestRemsenso
 
