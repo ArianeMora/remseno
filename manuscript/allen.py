@@ -14,9 +14,9 @@ c = Coords(coordinate_file_path, x_col='X', y_col='Y', label_col='class',
 c.transform_coords(tree_coords="EPSG:32632", image_coords="EPSG:32632", plot=True)
 
 #training_times = ['data/20230421_Allen.tif', 'data/20230615_Allen.tif', 'data/20230816_Allen.tif']
-training_times = ['data/20230421_Allen.tif', 'data/20230615_Allen.tif', 'data/20230816_Allen.tif', 'data/20230518_Allen.tif', 'data/20230708_Allen.tif']
+training_times = ['data/20230421_Allen.tif']#, 'data/20230615_Allen.tif']#, 'data/20230816_Allen.tif', 'data/20230518_Allen.tif', 'data/20230708_Allen.tif']
 
-test_times = ['data/20230915_Allen.tif']
+test_times = ['data/20230518_Allen.tif']#, 'data/20230708_Allen.tif'] #'data/20230915_Allen.tif']
 
 training_data = []
 
@@ -66,8 +66,9 @@ ml = ML()
 
 
 ml.train_ml_on_multiple_images(clf, images, coords=c, validation_percent=5, test_percent=30,
-                       max_pixel_padding=1, normalise=False)
+                                max_pixel_padding=1, normalise=True)
 
+ml.train_df.to_csv('train.csv')
 
 test_images = []
 coords = []
@@ -90,5 +91,5 @@ for data_file in test_times:
     c.transform_coords(tree_coords="EPSG:32632", image_coords="EPSG:32632", plot=False)
     coords.append(c)
 
-ml.train_ml_on_multiple_images(ml.clf, test_images, coords=c, validation_percent=2, test_percent=2,
-                       max_pixel_padding=1, normalise=False, pretrained=True)
+ml.train_ml_on_multiple_images(ml.clf, test_images, coords=c, validation_percent=50, test_percent=30,
+                       max_pixel_padding=1, normalise=True, pretrained=True)

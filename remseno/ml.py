@@ -47,8 +47,7 @@ class ML:
         self.train_df.to_csv(os.path.join(output_dir, f'trainDF_{label}.csv'), index=False)
         self.validation_df.to_csv(os.path.join(output_dir, f'validDF_{label}.csv'), index=False)
 
-    def build_train_df(self, df, image, coords, image_bands, max_pixel_padding=2,
-                       band_labels=None, normalise=False):
+    def build_train_df(self, df, image, coords, image_bands, max_pixel_padding=1, normalise=True):
         """
         Build a training dataframe from image and coordinate files!
 
@@ -78,10 +77,17 @@ class ML:
                     data_row.append(image_band[xy[1], xy[0]])
                 rows.append(data_row)
         # Now create a dataframe from this
-        train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.label_col, coords.x_col, coords.y_col] + band_labels)
+        train_df = pd.DataFrame(rows, columns=[coords.id_col, coords.label_col, coords.x_col, coords.y_col] +
+                                              band_labels)
+        # If normalise we normalise each row
+        if normalise:
+            # Use a standard scaler on each row
+            for b in band_labels:
+                vals = train_df[b]
+                train_df[b] = (vals - np.mean(vals))/np.std(vals) # Just do the usual standard scaling!
         return train_df, band_labels
 
-    def build_train_df_from_indexs(self, df, images, coords, max_pixel_padding=2):
+    def build_train_df_from_indexs(self, df, images, coords, max_pixel_padding=1, normalise=True):
         """
         Build a training dataframe from a list of images! NOTE: this assumes that all the images have the
         same coord system!
@@ -113,8 +119,14 @@ class ML:
             rows.append(data_row)
         # Now create a dataframe from this
         train_df = pd.DataFrame(rows)
+        cols = [c for i, c in enumerate(train_df.columns) if i > 1]
+        # If normalise we normalise each row
+        if normalise:
+            # Use a standard scaler on each row
+            for b in cols:
+                vals = train_df[b]
+                train_df[b] = (vals - np.mean(vals))/np.std(vals)  # Just do the usual standard scaling!
         cols = [coords.id_col, coords.label_col] + [c for i, c in enumerate(train_df.columns) if i > 1]
-        print(cols)
         train_df.columns = cols
         return train_df, [c for i, c in enumerate(train_df.columns) if i > 1]
 
@@ -173,7 +185,7 @@ class ML:
         return self.get_overall_tree_pred(coords.df, coords, df, df)
 
     def train_ml_on_multiple_images(self, clf, images, coords, validation_percent=20, test_percent=20,
-                 max_pixel_padding=2, normalise=False, pretrained=False):
+                                    max_pixel_padding=1, normalise=False, pretrained=False):
         """
         Train a ML classifier for multiple images with different indicies.
 
@@ -185,7 +197,7 @@ class ML:
         print(f"{valid_df}")
         # Now use the other as the dataframe
         df = coords.df[~coords.df[coords.id_col].isin(list(valid_df[coords.id_col].values))]
-        df, training_cols = self.build_train_df_from_indexs(df, images, coords)
+        df, training_cols = self.build_train_df_from_indexs(df, images, coords, max_pixel_padding, normalise)
         self.train_df = df
         self.valid_df, training_cols = self.build_train_df_from_indexs(valid_df, images, coords)
 
@@ -208,10 +220,7 @@ class ML:
         print(f"clf score {clf.score(X, y)}")
         print(f"balanced score {balanced_accuracy_score(y, clf.predict(X))}")
         print(len(self.valid_df), len(self.train_df))
-        # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
-        # Solve for w3 (z)
         Y = y
-
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         # For each class add as a point
@@ -233,7 +242,7 @@ class ML:
         return self.get_overall_tree_pred(coords.df, coords, self.train_df, self.valid_df)
 
     def train_ml(self, clf, image, coords, image_bands, validation_percent=20, test_percent=20,
-                 max_pixel_padding=2, normalise=False):
+                 max_pixel_padding=1, normalise=True):
         """
         Train a ML classifier for the image and coords.
 
