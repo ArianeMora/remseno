@@ -22,14 +22,20 @@ import math
 import os
 
 import pandas as pd
+from sklearn.model_selection import cross_validate
+import csv
 from sklearn.model_selection import train_test_split
-from sklearn import svm
-from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.svm import SVC
+from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import balanced_accuracy_score
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
-from sklearn.metrics import confusion_matrix
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 
@@ -45,6 +51,63 @@ class ML:
         pickle.dumps(os.path.join(output_dir, f'classifier_{label}.pkl'))
         self.train_df.to_csv(os.path.join(output_dir, f'trainDF_{label}.csv'), index=False)
         self.validation_df.to_csv(os.path.join(output_dir, f'validDF_{label}.csv'), index=False)
+
+    def perform_k_fold_cv(self, train_df, class1_label, class2_label,
+                          csv_file="classifier_metrics_with_per_fold_kfold.csv"):
+        """ Perform CV validation. """
+        cols = [c for c in train_df.columns if c not in ['id', 'class', 'X', 'Y', 'predicted_label']]
+        X = train_df[cols]
+        y_labels = train_df['class'].values
+        y = [1 if label == class1_label else 0 for label in y_labels]
+        # Split the dataset into training and testing sets
+        #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+        # List of classifiers to evaluate
+        classifiers = [
+            ("Logistic Regression", LogisticRegression(max_iter=1000)),
+            ("K-Nearest Neighbors", KNeighborsClassifier()),
+            ("Random Forest", RandomForestClassifier()),
+            ("Gradient Boosting", GradientBoostingClassifier()),
+            ("Support Vector Machine", make_pipeline(StandardScaler(), SVC())),
+            ("MLP Classifier", MLPClassifier(max_iter=1000))
+        ]
+        csv_data = [["Classifier", "Accuracy", "Precision", "Recall", "F1 Score"]]
+        scoring = ['accuracy', 'precision', 'recall', 'f1']
+
+        k_folds = 10
+
+        for name, clf in classifiers:
+            # Optionally, wrap the classifier with a StandardScaler in a pipeline
+            if not isinstance(clf, make_pipeline(StandardScaler(), SVC()).__class__):
+                clf = make_pipeline(StandardScaler(), clf)
+
+            # Perform k-fold cross-validation and compute scores
+            scores = cross_validate(clf, X, y, cv=k_folds, scoring=scoring, return_train_score=False)
+
+            # Store per-fold scores
+            for fold_index in range(k_folds):
+                fold_data = [
+                    name,
+                    fold_index + 1,  # Fold number (starting from 1)
+                    scores['test_accuracy'][fold_index],
+                    scores['test_precision'][fold_index],
+                    scores['test_recall'][fold_index],
+                    scores['test_f1'][fold_index]
+                ]
+                csv_data.append(fold_data)
+
+            # Calculate and print the mean of each metric across all folds
+            accuracy_avg = np.mean(scores['test_accuracy'])
+            precision_avg = np.mean(scores['test_precision'])
+            recall_avg = np.mean(scores['test_recall'])
+            f1_avg = np.mean(scores['test_f1'])
+            print(
+                f"{name} - Avg Accuracy: {accuracy_avg:.2f}, Avg Precision: {precision_avg:.2f}, Avg Recall: {recall_avg:.2f}, Avg F1: {f1_avg:.2f}")
+
+        # Write the metrics (including per-fold) to a CSV file
+        with open(csv_file, "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerows(csv_data)
 
     def build_train_df(self, df, image, coords, image_bands, max_pixel_padding=1, normalise=True):
         """
