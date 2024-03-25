@@ -21,7 +21,6 @@ Machine learning component of the project.
 import math
 import os
 
-import rasterio
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn import svm
@@ -72,7 +71,7 @@ class ML:
             for xy in bb:
                 # We now build the feature set which is
                 data_row = [tid, classes[i], xy[0], xy[1]]
-                for band_i, image_band in enumerate(image_bands):
+                for band_i, image_band in image_bands.items():
                     # Here we are extracting the feature i.e. the value from the image bands we're interested in
                     data_row.append(image_band[xy[1], xy[0]])
                 rows.append(data_row)
@@ -81,10 +80,14 @@ class ML:
                                               band_labels)
         # If normalise we normalise each row
         if normalise:
+            train_df = train_df.fillna(0)
+
             # Use a standard scaler on each row
             for b in band_labels:
                 vals = train_df[b]
-                train_df[b] = (vals - np.mean(vals))/np.std(vals) # Just do the usual standard scaling!
+                train_df[b] = (vals - np.mean(vals))/np.std(vals)  # Just do the usual standard scaling!
+            train_df = train_df.fillna(0)
+
         return train_df, band_labels
 
     def build_train_df_from_indexs(self, df, images, coords, max_pixel_padding=1, normalise=True):
@@ -122,7 +125,7 @@ class ML:
         cols = [c for i, c in enumerate(train_df.columns) if i > 1]
         # If normalise we normalise each row
         if normalise:
-            # Use a standard scaler on each row
+            # Use a standard scaler on each column
             for b in cols:
                 vals = train_df[b]
                 train_df[b] = (vals - np.mean(vals))/np.std(vals)  # Just do the usual standard scaling!
@@ -130,7 +133,7 @@ class ML:
         train_df.columns = cols
         return train_df, [c for i, c in enumerate(train_df.columns) if i > 1]
 
-    def validate(self, clf, image, coords, image_bands, max_pixel_padding=2, normalise=False):
+    def validate(self, clf, image, coords, image_bands, max_pixel_padding=1, normalise=False):
         """
         Validate a pretrained classifier
         :param clf:
@@ -184,12 +187,71 @@ class ML:
         self.clf = clf  # Save to the model
         return self.get_overall_tree_pred(coords.df, coords, df, df)
 
+    def train_on_image_list(self, clf, images, coords, validation_percent=20, test_percent=20,
+                            max_pixel_padding=1, normalise=False, pretrained=False):
+        # Build training DF from the coords
+        # First we want to hold some trees out, so we select a random sample from the dataset
+        valid_df = coords.df.sample(math.ceil(len(coords.df) * (validation_percent / 100)))
+        print(f"{valid_df}")
+        # Now use the other as the dataframe
+        df = coords.df[~coords.df[coords.id_col].isin(list(valid_df[coords.id_col].values))]
+        train_df = pd.DataFrame()
+        for i in range(0, len(images) - 1):
+            image = images[i]
+            tmp_df, training_cols = self.build_train_df(df, image['image'], coords, image['indexs'],
+                                                        max_pixel_padding, normalise)
+            train_df = pd.concat([train_df, tmp_df])
+        train_df = train_df.fillna(0)
+        train_df.to_csv('train.csv')
+        self.train_df = train_df
+
+        self.valid_df, training_cols = self.build_train_df(df, images[-1]['image'], coords, images[-1]['indexs'],
+                                                           max_pixel_padding, normalise)
+        df = train_df.copy()
+        X = df[training_cols].values
+        y = df[coords.label_col]
+        # Train model
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_percent / 100,
+                                                            random_state=42)
+        # Get the pixels from the orthomosaic
+        if not pretrained:
+            clf = clf.fit(X_train, y_train)
+        # if it's already been trained we can just run it!
+        clf.score(X_test, y_test)
+        test_score = clf.score(X_test, y_test)
+        y_pred = clf.predict(X_test)
+        print(f"test score {test_score}, {y_pred}")
+        # Then also do the final ones in the validation df i.e. unseen trees
+        X = self.valid_df[training_cols].values
+        y = self.valid_df[coords.label_col]
+        print(f"clf score {clf.score(X, y)}")
+        print(f"balanced score {balanced_accuracy_score(y, clf.predict(X))}")
+        print(len(self.valid_df), len(self.train_df))
+        Y = y
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        # For each class add as a point
+        for yval in set(Y):
+            ax.plot3D(X[Y == yval, 0], X[Y == yval, 1], X[Y == yval, 2], 'o')
+        plt.show()
+
+        # Also do a decision tree classifier
+        pred = clf.predict(X_test)
+        cm = confusion_matrix(y_test, pred, labels=clf.classes_)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
+        disp.plot()
+        plt.show()
+
+        # Add the predicted label in for each
+        self.train_df['predicted_label'] = clf.predict(self.train_df[training_cols].values)
+        self.valid_df['predicted_label'] = clf.predict(self.valid_df[training_cols].values)
+        self.clf = clf  # Save to the model
+        #return self.get_overall_tree_pred(coords.df, coords, self.train_df, self.valid_df)
+
     def train_ml_on_multiple_images(self, clf, images, coords, validation_percent=20, test_percent=20,
                                     max_pixel_padding=1, normalise=False, pretrained=False):
         """
         Train a ML classifier for multiple images with different indicies.
-
-        :return: VAE or something
         """
         # Build training DF from the coords
         # First we want to hold some trees out, so we select a random sample from the dataset
@@ -298,7 +360,6 @@ class ML:
         self.train_df['predicted_label'] = clf.predict(self.train_df[training_cols].values)
         self.valid_df['predicted_label'] = clf.predict(self.valid_df[training_cols].values)
         self.clf = clf # Save to the model
-        return self.get_overall_tree_pred(coords.df, coords, self.train_df, self.valid_df)
 
     def group_results(self, train_df, coords, correct, incorrect, id_value_map, data_type):
         """
@@ -358,7 +419,7 @@ class ML:
         df['data_type'] = data_types
         df['overall_pred'] = overall_pred
 
-    def test_ml(self, clf, image, coords, image_bands, max_pixel_padding=2, normalise=False):
+    def test_ml(self, clf, image, coords, image_bands, max_pixel_padding=1, normalise=False):
         # Preprocess the testing image and coordinates
         # Similar to the training phase, build the testing DataFrame
         test_df, test_cols = self.build_train_df(coords.df, image, coords, image_bands,
