@@ -20,6 +20,7 @@ Machine learning component of the project.
 """
 import math
 import os
+from sklearn.model_selection import StratifiedKFold
 
 import pandas as pd
 from sklearn.model_selection import cross_validate
@@ -53,7 +54,7 @@ class ML:
         self.validation_df.to_csv(os.path.join(output_dir, f'validDF_{label}.csv'), index=False)
 
     def perform_k_fold_cv(self, train_df, class1_label, class2_label,
-                          csv_file="classifier_metrics_with_per_fold_kfold.csv"):
+                          csv_file="classifier_metrics_with_per_fold_kfold.csv", k_folds=10):
         """ Perform CV validation. """
         cols = [c for c in train_df.columns if c not in ['id', 'class', 'X', 'Y', 'predicted_label']]
         X = train_df[cols]
@@ -71,10 +72,9 @@ class ML:
             ("Support Vector Machine", make_pipeline(StandardScaler(), SVC())),
             ("MLP Classifier", MLPClassifier(max_iter=1000))
         ]
-        csv_data = [["Classifier", "Accuracy", "Precision", "Recall", "F1 Score"]]
+        csv_data = [["Classifier", "Kth-fold", "Accuracy", "Precision", "Recall", "F1 Score"]]
         scoring = ['accuracy', 'precision', 'recall', 'f1']
-
-        k_folds = 10
+        skf = StratifiedKFold(n_splits=k_folds, shuffle=True, random_state=42)
 
         for name, clf in classifiers:
             # Optionally, wrap the classifier with a StandardScaler in a pipeline
@@ -82,7 +82,8 @@ class ML:
                 clf = make_pipeline(StandardScaler(), clf)
 
             # Perform k-fold cross-validation and compute scores
-            scores = cross_validate(clf, X, y, cv=k_folds, scoring=scoring, return_train_score=False)
+
+            scores = cross_validate(clf, X, y, cv=skf, scoring=scoring, return_train_score=False)
 
             # Store per-fold scores
             for fold_index in range(k_folds):

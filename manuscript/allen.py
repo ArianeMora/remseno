@@ -43,4 +43,6 @@ train_df = build_dataset_across_images(c.df, images, c, max_pixel_padding=1, nor
 
 # Run the k-fold cross validation.
 ml = ML()
-ml.perform_k_fold_cv(train_df, 'Sylvatica', 'Orientals', csv_file="classifier_metrics_with_per_fold_kfold.csv")
+k_folds = 10 # The number of folds for the cross validation!
+ml.perform_k_fold_cv(train_df, 'Sylvatica', 'Orientals', csv_file="classifier_metrics_with_per_fold_kfold.csv",
+                     k_folds=k_folds)
