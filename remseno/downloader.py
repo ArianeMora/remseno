@@ -34,7 +34,7 @@ import asyncio
 import os
 import planet
 
-API_KEY = 'PLAK5a21e86c2faf452195d43c3ca3f318ee'
+API_KEY = '86d667757ba14bc38dd4555d8ab948d5'
 
 os.environ['PL_API_KEY'] = API_KEY
 DOWNLOAD_DIR = os.getenv('TEST_DOWNLOAD_DIR', '.')
