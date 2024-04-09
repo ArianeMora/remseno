@@ -38,6 +38,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import xgboost as xgb
+from catboost import CatBoostClassifier
+
 
 
 class ML:
@@ -65,13 +68,63 @@ class ML:
 
         # List of classifiers to evaluate
         classifiers = [
-            ("Logistic Regression", LogisticRegression(max_iter=1000)),
-            ("K-Nearest Neighbors", KNeighborsClassifier()),
-            ("Random Forest", RandomForestClassifier()),
-            ("Gradient Boosting", GradientBoostingClassifier()),
-            ("Support Vector Machine", make_pipeline(StandardScaler(), SVC())),
-            ("MLP Classifier", MLPClassifier(max_iter=1000))
+            ("Logistic Regression", LogisticRegression(
+                max_iter=1000,
+                C=1,
+                solver='liblinear',  # Good choice for small datasets
+                penalty='l2'  # L2 regularization
+            )),
+            ("K-Nearest Neighbors", KNeighborsClassifier(
+                n_neighbors=5,
+                metric='euclidean'
+            )),
+            ("Random Forest", RandomForestClassifier(
+                n_estimators=100,  # Fewer trees
+                max_depth=10,  # Limit depth of each tree
+                bootstrap=True,  # Use bootstrap samples in the construction of trees
+                random_state=42
+            )),
+            ("Gradient Boosting", GradientBoostingClassifier(
+                learning_rate=0.1,
+                n_estimators=100,
+                max_depth=10,  # Shallower trees
+                subsample=0.8,  # Stochastic Gradient Boosting
+                random_state=42
+            )),
+            ("Support Vector Machine", make_pipeline(
+                StandardScaler(),
+                SVC(
+                    C=1,
+                    kernel='rbf',  # Radial Basis Function (RBF) kernel
+                    gamma='scale'  # Automatic gamma value
+                )
+            )),
+            ("MLP Classifier", MLPClassifier(max_iter=1000)),
+            ("XGBoost", xgb.XGBClassifier(
+                use_label_encoder=False,
+                eval_metric='logloss',
+                n_estimators=300,  # Start with fewer trees
+                max_depth=8,  # Shallower trees to prevent overfitting
+                learning_rate=0.1,  # Smaller learning rate for gradual improvements
+                subsample=0.8,  # Use 80% of data to prevent overfitting
+                colsample_bytree=0.8,  # Use 80% of features to prevent overfitting
+                min_child_weight=1,  # Minimum sum of instance weight needed in a child
+                reg_alpha=0.01,  # L1 regularization term on weights (increases model generalization)
+                reg_lambda=1.0  # L2 regularization term on weights
+            )),
+            ("CatBoost", CatBoostClassifier(
+                learning_rate=0.1,
+                depth=8,  # Shallower trees for small datasets
+                iterations=300,  # Fewer iterations to start, adjust based on CV
+                random_seed=42,
+                l2_leaf_reg=3,  # Regularization rate
+                border_count=128,  # Default is fine, adjust if necessary
+                subsample=0.8,  # Consider subsampling for small datasets
+                logging_level='Silent',  # Keeps the output clean
+                early_stopping_rounds=30  # Use early stopping to prevent overfitting
+            ))
         ]
+
         csv_data = [["Classifier", "Kth-fold", "Accuracy", "Precision", "Recall", "F1 Score"]]
         scoring = ['accuracy', 'precision', 'recall', 'f1']
         skf = StratifiedKFold(n_splits=k_folds, shuffle=True, random_state=42)
@@ -97,6 +150,7 @@ class ML:
                 ]
                 csv_data.append(fold_data)
 
+
             # Calculate and print the mean of each metric across all folds
             accuracy_avg = np.mean(scores['test_accuracy'])
             precision_avg = np.mean(scores['test_precision'])
@@ -109,6 +163,7 @@ class ML:
         with open(csv_file, "w", newline="") as file:
             writer = csv.writer(file)
             writer.writerows(csv_data)
+
 
     def build_train_df(self, df, image, coords, image_bands, max_pixel_padding=1, normalise=True):
         """
@@ -225,6 +280,7 @@ class ML:
         # Train model
         test_score = clf.score(X, y)
         y_pred = clf.predict(X)
+
         print(f"test score {test_score}, {y_pred}")
         print(f"clf score {clf.score(X, y)}")
         print(f"balanced a s {balanced_accuracy_score(y, clf.predict(X))}")
@@ -246,12 +302,13 @@ class ML:
         disp.plot()
         plt.show()
 
+
         # Add the predicted label in for each
         df['predicted_label'] = pred
         self.clf = clf  # Save to the model
         return self.get_overall_tree_pred(coords.df, coords, df, df)
 
-    def train_on_image_list(self, clf, images, coords, validation_percent=20, test_percent=20,
+    def train_on_image_list(self, clf, images, coords, validation_percent=30, test_percent=30,
                             max_pixel_padding=1, normalise=False, pretrained=False):
         # Build training DF from the coords
         # First we want to hold some trees out, so we select a random sample from the dataset
@@ -284,6 +341,7 @@ class ML:
         clf.score(X_test, y_test)
         test_score = clf.score(X_test, y_test)
         y_pred = clf.predict(X_test)
+
         print(f"test score {test_score}, {y_pred}")
         # Then also do the final ones in the validation df i.e. unseen trees
         X = self.valid_df[training_cols].values
@@ -312,7 +370,7 @@ class ML:
         self.clf = clf  # Save to the model
         #return self.get_overall_tree_pred(coords.df, coords, self.train_df, self.valid_df)
 
-    def train_ml_on_multiple_images(self, clf, images, coords, validation_percent=20, test_percent=20,
+    def train_ml_on_multiple_images(self, clf, images, coords, validation_percent=30, test_percent=30,
                                     max_pixel_padding=1, normalise=False, pretrained=False):
         """
         Train a ML classifier for multiple images with different indicies.
@@ -367,7 +425,7 @@ class ML:
         self.clf = clf  # Save to the model
         return self.get_overall_tree_pred(coords.df, coords, self.train_df, self.valid_df)
 
-    def train_ml(self, clf, image, coords, image_bands, validation_percent=20, test_percent=20,
+    def train_ml(self, clf, image, coords, image_bands, validation_percent=30, test_percent=30,
                  max_pixel_padding=1, normalise=True):
         """
         Train a ML classifier for the image and coords.
@@ -496,6 +554,8 @@ class ML:
         # Predict using the trained classifier
         y_pred = clf.predict(X_test)
 
+
+
         # Calculate evaluation metrics
         accuracy = balanced_accuracy_score(y_test, y_pred)
         print(f"Testing Accuracy: {accuracy}")
@@ -509,6 +569,10 @@ class ML:
         # Return the testing DataFrame with predictions for further analysis
         test_df['predicted_label'] = y_pred
         df = pd.DataFrame()
+
+
+
+
 
         return df, test_df
 

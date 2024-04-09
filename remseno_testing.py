@@ -99,6 +99,9 @@ ml = ML()
 df = ml.train_ml(clf, image=o, coords=c, image_bands=bands, validation_percent=30, test_percent=30,
                 max_pixel_padding=2, normalise=False)
 
+test_df
+
+
 #df.to_csv('test_pred.csv')
 
 

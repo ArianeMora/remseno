@@ -9,8 +9,13 @@ np.seterr(divide='ignore', invalid='ignore')
 coordinate_file_path = 'data/Allen_all_genotyped_trees_2024.csv'
 
 # just add in all the files you want to add here!
-training_times = ['data/20230421_Allen.tif', 'data/20230518_Allen.tif', 'data/20230915_Allen.tif',
-                  'data/20230708_Allen.tif', 'data/20230816_Allen.tif', 'data/20230708_Allen.tif']
+training_times = ['data/20230421_Allen.tif', 'data/20230518_Allen.tif', 'data/20230615_Allen.tif',
+                  'data/20230708_Allen.tif', 'data/20230816_Allen.tif', 'data/20230915_Allen.tif',
+                  'data/20231002_Allen.tif', 'data/20231013_Allen.tif', 'data/20231122_Allen.tif' ]
+#training_times = ['data/20230421_Allen.tif', 'data/20230518_Allen.tif', 'data/20230615_Allen.tif',
+#                  'data/20230708_Allen.tif', 'data/20230816_Allen.tif', 'data/20230915_Allen.tif',
+#                  'data/20231002_Allen.tif', 'data/20231013_Allen.tif', 'data/20231122_Allen.tif' ]
+
 
 def get_all_planetscope(img):
     ndvi = get_ndvi(image=img, red_band=6, nir_band=8)
@@ -46,3 +51,4 @@ ml = ML()
 k_folds = 10 # The number of folds for the cross validation!
 ml.perform_k_fold_cv(train_df, 'Sylvatica', 'Orientals', csv_file="classifier_metrics_with_per_fold_kfold.csv",
                      k_folds=k_folds)
+
