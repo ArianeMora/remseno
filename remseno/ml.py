@@ -38,8 +38,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-import xgboost as xgb
-from catboost import CatBoostClassifier
+# import xgboost as xgb
+# from catboost import CatBoostClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
 
@@ -55,6 +56,154 @@ class ML:
         pickle.dumps(os.path.join(output_dir, f'classifier_{label}.pkl'))
         self.train_df.to_csv(os.path.join(output_dir, f'trainDF_{label}.csv'), index=False)
         self.validation_df.to_csv(os.path.join(output_dir, f'validDF_{label}.csv'), index=False)
+
+    def validate_clf(self, test_df, classifiers, class1_label, csv_file='classifers_performance_validation_set.csv'):
+        """ Validate the trained classifiers on a test set. """
+        cols = [c for c in test_df.columns if c not in ['id', 'class', 'X', 'Y', 'predicted_label']]
+        X = test_df[cols]
+        y_labels = test_df['class'].values
+        y_test = [1 if label == class1_label else 0 for label in y_labels]
+        # Since we're validating the whole thing is the y-test
+        csv_data = [["Classifier", "Kth-fold", "Accuracy", "Precision", "Recall", "F1 Score"]]
+
+        for name in classifiers:
+            clf = classifiers[name]
+            scoring = ['accuracy', 'precision', 'recall', 'f1']
+
+            # Generate predictions
+            y_pred = clf.predict(X)
+
+            # Compute scores
+            accuracy = accuracy_score(y_test, y_pred)
+            precision = precision_score(y_test, y_pred, average='macro')
+            recall = recall_score(y_test, y_pred, average='macro')
+            f1 = f1_score(y_test, y_pred, average='macro')
+
+            # Store per-fold score
+            fold_data = [
+                name,
+                1,
+                accuracy,
+                precision,
+                recall,
+                f1,
+            ]
+            csv_data.append(fold_data)
+            # Write the metrics (including per-fold) to a CSV file
+        with open(csv_file, "w+", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerows(csv_data)
+
+    def train_clf(self, train_df, class1_label, class2_label, csv_file="classifier_metrics_for_test_dataset.csv"):
+        """  train classifiers using a test set """
+        cols = [c for c in train_df.columns if c not in ['id', 'class', 'X', 'Y', 'predicted_label']]
+        X = train_df[cols]
+        y_labels = train_df['class'].values
+        y = [1 if label == class1_label else 0 for label in y_labels]
+        # Split the dataset into training and testing sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+        # List of classifiers to evaluate
+        classifiers = [
+            ("Logistic Regression", LogisticRegression(
+                max_iter=1000,
+                C=1,
+                solver='liblinear',  # Good choice for small datasets
+                penalty='l2'  # L2 regularization
+            )),
+            ("K-Nearest Neighbors", KNeighborsClassifier(
+                n_neighbors=5,
+                metric='euclidean'
+            )),
+            ("Random Forest", RandomForestClassifier(
+                n_estimators=100,  # Fewer trees
+                max_depth=10,  # Limit depth of each tree
+                bootstrap=True,  # Use bootstrap samples in the construction of trees
+                random_state=42
+            )),
+            ("Gradient Boosting", GradientBoostingClassifier(
+                learning_rate=0.1,
+                n_estimators=100,
+                max_depth=10,  # Shallower trees
+                subsample=0.8,  # Stochastic Gradient Boosting
+                random_state=42
+            )),
+            ("Support Vector Machine", make_pipeline(
+                StandardScaler(),
+                SVC(
+                    C=1,
+                    kernel='rbf',  # Radial Basis Function (RBF) kernel
+                    gamma='scale'  # Automatic gamma value
+                )
+            )),
+            ("MLP Classifier", MLPClassifier(max_iter=1000)),
+            # ("XGBoost", xgb.XGBClassifier(
+            #     use_label_encoder=False,
+            #     eval_metric='logloss',
+            #     n_estimators=300,  # Start with fewer trees
+            #     max_depth=8,  # Shallower trees to prevent overfitting
+            #     learning_rate=0.1,  # Smaller learning rate for gradual improvements
+            #     subsample=0.8,  # Use 80% of data to prevent overfitting
+            #     colsample_bytree=0.8,  # Use 80% of features to prevent overfitting
+            #     min_child_weight=1,  # Minimum sum of instance weight needed in a child
+            #     reg_alpha=0.01,  # L1 regularization term on weights (increases model generalization)
+            #     reg_lambda=1.0  # L2 regularization term on weights
+            # )),
+            # ("CatBoost", CatBoostClassifier(
+            #     learning_rate=0.1,
+            #     depth=8,  # Shallower trees for small datasets
+            #     iterations=300,  # Fewer iterations to start, adjust based on CV
+            #     random_seed=42,
+            #     l2_leaf_reg=3,  # Regularization rate
+            #     border_count=128,  # Default is fine, adjust if necessary
+            #     subsample=0.8,  # Consider subsampling for small datasets
+            #     logging_level='Silent',  # Keeps the output clean
+            #     early_stopping_rounds=30  # Use early stopping to prevent overfitting
+            # ))
+        ]
+
+        csv_data = [["Classifier", "Kth-fold", "Accuracy", "Precision", "Recall", "F1 Score"]]
+        scoring = ['accuracy', 'precision', 'recall', 'f1']
+        trained_classifiers = {}
+        for name, clf in classifiers:
+            # Optionally, wrap the classifier with a StandardScaler in a pipeline
+            if not isinstance(clf, make_pipeline(StandardScaler(), SVC()).__class__):
+                clf = make_pipeline(StandardScaler(), clf)
+
+            # Perform k-fold cross-validation and compute scores
+            # Fit the classifier
+            clf = clf.fit(X_train, y_train)
+            trained_classifiers[name] = clf
+            # Generate predictions
+            y_pred = clf.predict(X_test)
+
+            # Compute scores
+            accuracy = accuracy_score(y_test, y_pred)
+            precision = precision_score(y_test, y_pred, average='macro')
+            recall = recall_score(y_test, y_pred, average='macro')
+            f1 = f1_score(y_test, y_pred, average='macro')
+            
+            # Store per-fold score
+            fold_data = [
+                name,
+                1,
+                accuracy,
+                precision,
+                recall,
+                f1,
+            ]
+            csv_data.append(fold_data)
+
+            # Save the classifier to a file
+            with open(f'{name}.pkl', 'wb') as file:
+                pickle.dump(clf, file)
+
+        # Write the metrics (including per-fold) to a CSV file
+        with open(csv_file, "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerows(csv_data)
+
+        return trained_classifiers
 
     def perform_k_fold_cv(self, train_df, class1_label, class2_label,
                           csv_file="classifier_metrics_with_per_fold_kfold.csv", k_folds=10):

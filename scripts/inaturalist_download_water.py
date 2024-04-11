@@ -48,7 +48,7 @@ import pandas as pd
 from remseno import *
 
 label = 'water'
-filename = f'{data_dir}not_trees_df_image_ids_{label}.csv'
+filename = f'{data_dir}not_trees_df_image_ids_spring_{label}.csv'
 meters = 3
 
 c = Coords(filename, x_col='longitude', y_col='latitude', label_col='class',
