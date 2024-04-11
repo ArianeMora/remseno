@@ -137,29 +137,29 @@ class ML:
                 )
             )),
             ("MLP Classifier", MLPClassifier(max_iter=1000)),
-            # ("XGBoost", xgb.XGBClassifier(
-            #     use_label_encoder=False,
-            #     eval_metric='logloss',
-            #     n_estimators=300,  # Start with fewer trees
-            #     max_depth=8,  # Shallower trees to prevent overfitting
-            #     learning_rate=0.1,  # Smaller learning rate for gradual improvements
-            #     subsample=0.8,  # Use 80% of data to prevent overfitting
-            #     colsample_bytree=0.8,  # Use 80% of features to prevent overfitting
-            #     min_child_weight=1,  # Minimum sum of instance weight needed in a child
-            #     reg_alpha=0.01,  # L1 regularization term on weights (increases model generalization)
-            #     reg_lambda=1.0  # L2 regularization term on weights
-            # )),
-            # ("CatBoost", CatBoostClassifier(
-            #     learning_rate=0.1,
-            #     depth=8,  # Shallower trees for small datasets
-            #     iterations=300,  # Fewer iterations to start, adjust based on CV
-            #     random_seed=42,
-            #     l2_leaf_reg=3,  # Regularization rate
-            #     border_count=128,  # Default is fine, adjust if necessary
-            #     subsample=0.8,  # Consider subsampling for small datasets
-            #     logging_level='Silent',  # Keeps the output clean
-            #     early_stopping_rounds=30  # Use early stopping to prevent overfitting
-            # ))
+            ("XGBoost", xgb.XGBClassifier(
+                use_label_encoder=False,
+                eval_metric='logloss',
+                n_estimators=300,  # Start with fewer trees
+                max_depth=8,  # Shallower trees to prevent overfitting
+                learning_rate=0.1,  # Smaller learning rate for gradual improvements
+                subsample=0.8,  # Use 80% of data to prevent overfitting
+                colsample_bytree=0.8,  # Use 80% of features to prevent overfitting
+                min_child_weight=1,  # Minimum sum of instance weight needed in a child
+                reg_alpha=0.01,  # L1 regularization term on weights (increases model generalization)
+                reg_lambda=1.0  # L2 regularization term on weights
+            )),
+            ("CatBoost", CatBoostClassifier(
+                learning_rate=0.1,
+                depth=8,  # Shallower trees for small datasets
+                iterations=300,  # Fewer iterations to start, adjust based on CV
+                random_seed=42,
+                l2_leaf_reg=3,  # Regularization rate
+                border_count=128,  # Default is fine, adjust if necessary
+                subsample=0.8,  # Consider subsampling for small datasets
+                logging_level='Silent',  # Keeps the output clean
+                early_stopping_rounds=30  # Use early stopping to prevent overfitting
+            ))
         ]
 
         csv_data = [["Classifier", "Kth-fold", "Accuracy", "Precision", "Recall", "F1 Score"]]

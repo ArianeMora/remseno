@@ -191,7 +191,7 @@ class Image(Remsenso):
         nrg = np.dstack(img_bands)
         return self.vis.plot_img(nrg, ax=ax, show_plot=show_plot, title=title)
 
-    def plot_rbg(self, ax=None, show_plot=False, r=3, b=4, g=2, title=''):
+    def plot_rbg(self, ax=None, show_plot=False, r=3, b=4, g=2, title='', mask=None):
         """
         Thank you aaron you're a G whoever you are!
         https://gis.stackexchange.com/questions/306164/how-to-visualize-multiband-imagery-using-rasterio
@@ -203,7 +203,10 @@ class Image(Remsenso):
         blue = self.image.read(b)
         red = self.image.read(r)
         green = self.image.read(g)
-
+        if mask:
+            blue = blue * mask
+            red = red * mask
+            green = green * mask
         # Normalize band DN
         blue_norm = normalise(blue)
         red_norm = normalise(red)
